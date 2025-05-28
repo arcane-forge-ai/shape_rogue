@@ -1,11 +1,7 @@
 {
   "wave_config": {
     "max_waves": 5,
-    "wave_duration": 30.0,
-    "base_spawn_interval": 2.0,
-    "spawn_interval_reduction_per_wave": 0.2,
-    "within_wave_progression_multiplier": 0.5,
-    "minimum_spawn_interval": 0.2
+    "wave_duration": 30.0
   },
   "waves": [
     {
@@ -15,7 +11,9 @@
       "enemy_types": ["chaser"],
       "spawn_weights": {
         "chaser": 1.0
-      }
+      },
+      "spawn_interval": 2.5,
+      "spawn_count": 1
     },
     {
       "wave": 2,
@@ -24,7 +22,9 @@
       "enemy_types": ["shooter"],
       "spawn_weights": {
         "shooter": 1.0
-      }
+      },
+      "spawn_interval": 2.0,
+      "spawn_count": 1
     },
     {
       "wave": 3,
@@ -34,7 +34,9 @@
       "spawn_weights": {
         "chaser": 0.6,
         "shooter": 0.4
-      }
+      },
+      "spawn_interval": 1.8,
+      "spawn_count": 2
     },
     {
       "wave": 4,
@@ -44,7 +46,9 @@
       "spawn_weights": {
         "chaser": 0.5,
         "shooter": 0.5
-      }
+      },
+      "spawn_interval": 1.5,
+      "spawn_count": 2
     },
     {
       "wave": 5,
@@ -54,7 +58,9 @@
       "spawn_weights": {
         "chaser": 0.4,
         "shooter": 0.6
-      }
+      },
+      "spawn_interval": 1.2,
+      "spawn_count": 3
     }
   ],
   "enemy_rewards": {

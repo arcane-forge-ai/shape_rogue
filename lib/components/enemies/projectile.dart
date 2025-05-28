@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'dart:math';
 
 import '../../game/circle_rouge_game.dart';
 import 'enemy_chaser.dart';
@@ -10,9 +11,16 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
   final double speed;
   final double damage;
   final bool isEnemyProjectile;
+  final Color? heroColor; // Optional hero color for hero projectiles
   
   double lifeTime = 0.0;
   static const double maxLifeTime = 3.0; // Seconds before auto-destroy
+  
+  // Slow effect system
+  bool isSlowed = false;
+  double slowTimer = 0.0;
+  double slowDuration = 3.0; // Slow lasts 3 seconds
+  double speedMultiplier = 1.0;
   
   Projectile({
     required Vector2 startPosition,
@@ -20,18 +28,59 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
     required this.speed,
     required this.damage,
     this.isEnemyProjectile = false,
+    this.heroColor,
   }) : super(
     radius: 6.0 * CircleRougeGame.scaleFactor, // 50% smaller and scaled
-    paint: Paint()..color = isEnemyProjectile ? const Color(0xFFFF1744) : const Color(0xFF00BCD4),
+    paint: Paint()..color = getProjectileColor(isEnemyProjectile, heroColor),
     position: startPosition,
   );
+  
+  static Color getProjectileColor(bool isEnemyProjectile, Color? heroColor) {
+    if (isEnemyProjectile) {
+      return const Color(0xFFFF1744); // Red for enemy projectiles
+    } else if (heroColor != null) {
+      return heroColor; // Use hero's color
+    } else {
+      return const Color(0xFF00BCD4); // Default cyan for hero projectiles
+    }
+  }
+  
+  @override
+  void onMount() {
+    super.onMount();
+    // Register projectile with game
+    gameRef.addProjectile(this);
+  }
   
   @override
   void update(double dt) {
     super.update(dt);
     
-    // Move projectile
-    position += direction * speed * dt;
+    // Update slow timer
+    if (isSlowed) {
+      slowTimer += dt;
+      if (slowTimer >= slowDuration) {
+        isSlowed = false;
+        slowTimer = 0.0;
+        speedMultiplier = 1.0;
+        // Reset color
+        paint.color = getProjectileColor(isEnemyProjectile, heroColor);
+      } else {
+        // Blink transparency between 70% and 100% while slowed
+        final blinkTime = (slowTimer * 3) % 1.0; // 3 blinks per second
+        final alpha = (0.7 + 0.3 * sin(blinkTime * 2 * pi)).clamp(0.7, 1.0);
+        final originalColor = getProjectileColor(isEnemyProjectile, heroColor);
+        paint.color = Color.fromRGBO(
+          originalColor.red, 
+          originalColor.green, 
+          originalColor.blue, 
+          alpha
+        );
+      }
+    }
+    
+    // Move projectile with speed multiplier
+    position += direction * speed * speedMultiplier * dt;
     
     // Update lifetime
     lifeTime += dt;
@@ -39,9 +88,9 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
     // Check collision with hero (if enemy projectile)
     if (isEnemyProjectile) {
       final distanceToHero = position.distanceTo(gameRef.hero.position);
-      if (distanceToHero < radius + gameRef.hero.radius) {
+      if (distanceToHero < radius + gameRef.hero.collisionRadius) {
         gameRef.hero.takeDamage(damage);
-        removeFromParent();
+        _destroyProjectile();
         return;
       }
     } else {
@@ -57,7 +106,7 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
             } else if (enemy is EnemyShooter) {
               enemy.takeDamage(damage);
             }
-            removeFromParent();
+            _destroyProjectile();
             return;
           }
         }
@@ -68,7 +117,24 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
     if (lifeTime > maxLifeTime ||
         position.x < -100 || position.x > CircleRougeGame.arenaWidth + 100 ||
         position.y < -100 || position.y > CircleRougeGame.arenaHeight + 100) {
-      removeFromParent();
+      _destroyProjectile();
     }
+  }
+  
+  void applySlowEffect(double multiplier) {
+    isSlowed = true;
+    speedMultiplier = multiplier;
+    slowTimer = 0.0;
+  }
+  
+  void _destroyProjectile() {
+    gameRef.onProjectileDestroyed(this);
+    removeFromParent();
+  }
+  
+  @override
+  void removeFromParent() {
+    gameRef.onProjectileDestroyed(this);
+    super.removeFromParent();
   }
 } 

@@ -249,6 +249,17 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
   List<ShopItem> _getAvailableItems() {
     final itemConfig = ItemConfig.instance;
     return itemConfig.items.map((itemData) {
+      // Create dynamic name for ability cooldown reduction based on hero's ability
+      if (itemData.id == 'dash_mastery') {
+        final heroAbilityName = gameRef.hero.heroData.ability.name;
+        return ShopItem(
+          id: itemData.id,
+          name: '$heroAbilityName Mastery',
+          cost: itemData.cost,
+          description: '-25% ${heroAbilityName} Cooldown',
+          onPurchase: () => _applyItemEffect(itemData),
+        );
+      }
       return ShopItem.fromItemData(itemData, () => _applyItemEffect(itemData));
     }).toList();
   }
@@ -260,7 +271,8 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
         gameRef.hero.heal(healAmount);
         break;
       case 'dash_cooldown_multiplier':
-        gameRef.hero.dashCooldownMultiplier *= itemData.effect.value;
+        // Apply ability cooldown reduction
+        gameRef.hero.abilityCooldownMultiplier *= itemData.effect.value;
         break;
       case 'max_health_increase':
         gameRef.hero.maxHealth += itemData.effect.value;

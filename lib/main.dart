@@ -2,6 +2,10 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'game/circle_rouge_game.dart';
+import 'overlays/start_menu_overlay.dart';
+import 'overlays/hero_selection_overlay.dart';
+import 'overlays/pause_menu_overlay.dart';
+import 'overlays/game_over_overlay.dart';
 
 void main() {
   runApp(const CircleRougeApp());
@@ -54,6 +58,13 @@ class CircleRougeApp extends StatelessWidget {
                     final game = CircleRougeGame();
                     game.updateScreenDimensions(scaledWidth, scaledHeight);
                     return game;
+                  },
+                  overlayBuilderMap: {
+                    'StartMenu': (context, game) => StartMenuOverlay(game: game),
+                    'HeroSelection': (context, game) => HeroSelectionOverlay(game: game),
+                    'PauseMenu': (context, game) => PauseMenuOverlay(game: game),
+                    'GameOver': (context, game) => GameOverOverlay(game: game, isVictory: false),
+                    'Victory': (context, game) => GameOverOverlay(game: game, isVictory: true),
                   },
                 ),
               ),

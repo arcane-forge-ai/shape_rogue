@@ -223,10 +223,23 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
     dashCooldownFill.size.x = dashCooldownWidth * cooldownPercent;
     if (cooldownPercent >= 1.0) {
-      dashCooldownText.text = 'Dash Ready';
+      dashCooldownText.text = 'Ability Ready';
       dashCooldownFill.paint.color = const Color(0xFF4CAF50);
     } else {
-      dashCooldownText.text = 'Dash Cooldown';
+      dashCooldownFill.paint.color = const Color(0xFFFF9800);
+    }
+  }
+  
+  // New method to update cooldown with seconds remaining
+  void updateAbilityCooldown(double cooldownPercent, double remainingSeconds) {
+    final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
+    dashCooldownFill.size.x = dashCooldownWidth * cooldownPercent;
+    if (cooldownPercent >= 1.0) {
+      dashCooldownText.text = 'Ability Ready';
+      dashCooldownFill.paint.color = const Color(0xFF4CAF50);
+    } else {
+      final seconds = remainingSeconds.ceil();
+      dashCooldownText.text = 'Cooldown: ${seconds}s';
       dashCooldownFill.paint.color = const Color(0xFFFF9800);
     }
   }

@@ -5,6 +5,9 @@
 - Should only increment patch version unless instructed by user.
 
 # Current Feedback List 
-- shop roll price stuck at showing `free` after a free roll, even if it's actually not free.
-- Dash keybinding should be on `K` instead of on `E` now.
-- Add a pause menu that can be toggled with `Esc` button
+## Bugs
+- All ability reduce cooldowns are now named as `Dash Mastery`, it should be `$Ability Mastery`
+- Game over menu again is stucked after game lost > main menu > start game or game lost > play again
+- Hex's ability doesn't slow down enemies and the damage is not observable
+- Square's ability doesn't stun enemies
+

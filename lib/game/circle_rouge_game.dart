@@ -12,27 +12,23 @@ import '../components/enemies/enemy_chaser.dart';
 import '../components/enemies/enemy_shooter.dart';
 import '../components/hud.dart';
 import '../components/shop_panel.dart';
-import '../components/start_menu.dart';
-import '../components/end_menu.dart';
-import '../components/pause_menu.dart';
 import '../config/item_config.dart';
 import '../config/wave_config.dart';
+import '../config/hero_config.dart';
 
-enum GameState { startMenu, playing, shopping, gameOver, victory, paused }
+enum GameState { startMenu, heroSelection, playing, shopping, gameOver, victory, paused }
 
 class CircleRougeGame extends FlameGame
     with HasKeyboardHandlerComponents, HasCollisionDetection {
   late Hero hero;
   late HudComponent hud;
   late ShopPanel shopPanel;
-  late StartMenu startMenu;
-  EndMenu? endMenu;
-  Component? pauseMenu;
   
   GameState gameState = GameState.startMenu;
   int currentWave = 1;
   int get maxWaves => WaveConfig.instance.settings?.maxWaves ?? 5;
   List<Component> currentEnemies = [];
+  List<Component> currentProjectiles = [];
   
   // Time-based wave system - values from config
   double waveTimer = 0.0;
@@ -48,11 +44,14 @@ class CircleRougeGame extends FlameGame
   // Scaling factor based on arena size (relative to base 800x600)
   static double get scaleFactor => (arenaWidth + arenaHeight) / (800.0 + 600.0);
   
+  String selectedHeroId = 'circle'; // Default hero selection
+  
   @override
   Future<void> onLoad() async {
     // Load configurations first
     await ItemConfig.instance.loadConfig();
     await WaveConfig.instance.loadConfig();
+    await HeroConfig.instance.loadConfig();
     
     // Calculate responsive arena size based on a reasonable base size
     // This will be overridden by the main app when it knows screen size
@@ -69,31 +68,51 @@ class CircleRougeGame extends FlameGame
     );
     add(arena);
     
-    // Create and show start menu
-    startMenu = StartMenu();
-    add(startMenu);
-    
     // Create hero at center (will be added when game starts)
-    hero = Hero(position: Vector2(arenaWidth / 2, arenaHeight / 2));
+    hero = Hero(position: Vector2(arenaWidth / 2, arenaHeight / 2), heroId: selectedHeroId);
     
     // Create HUD (will be added when game starts)
     hud = HudComponent();
     
     // Create shop panel (will be added when needed)
     shopPanel = ShopPanel();
+    
+    // Show start menu overlay
+    overlays.add('StartMenu');
   }
   
   void startGame() {
+    gameState = GameState.heroSelection;
+    overlays.remove('StartMenu');
+    overlays.add('HeroSelection');
+  }
+  
+  void startGameWithHero(String heroId) {
+    selectedHeroId = heroId;
     gameState = GameState.playing;
     currentWave = 1;
     
-    // Remove start menu
-    startMenu.removeFromParent();
+    // Remove all overlays
+    overlays.remove('HeroSelection');
+    overlays.remove('GameOver');
+    overlays.remove('Victory');
+    overlays.remove('PauseMenu');
+    
+    // Remove existing hero if mounted
+    if (hero.isMounted) {
+      hero.removeFromParent();
+    }
+    
+    // Create hero with selected type
+    hero = Hero(position: Vector2(arenaWidth / 2, arenaHeight / 2), heroId: selectedHeroId);
+    
+    // Reset all upgrade multipliers
+    hero.attackSpeedMultiplier = 1.0;
+    hero.speedMultiplier = 1.0;
+    hero.abilityCooldownMultiplier = 1.0;
     
     // Add game components
-    if (!hero.isMounted) {
-      add(hero);
-    }
+    add(hero);
     if (!hud.isMounted) {
       add(hud);
     }
@@ -109,37 +128,49 @@ class CircleRougeGame extends FlameGame
   }
   
   void restartGame() {
-    // Remove end menu if it exists
-    if (endMenu != null && endMenu!.isMounted) {
-      endMenu!.removeFromParent();
-      endMenu = null;
-    }
+    // Remove all overlays
+    overlays.remove('GameOver');
+    overlays.remove('Victory');
+    overlays.remove('PauseMenu');
     
     // Clear enemies
-    for (final enemy in currentEnemies) {
-      enemy.removeFromParent();
+    final enemiesCopy = List<Component>.from(currentEnemies);
+    for (final enemy in enemiesCopy) {
+      if (enemy.isMounted) {
+        enemy.removeFromParent();
+      }
     }
     currentEnemies.clear();
     
-    // Remove shop if visible
-    if (shopPanel.isMounted) {
-      shopPanel.removeFromParent();
+    // Clear projectiles
+    final projectilesCopy = List<Component>.from(currentProjectiles);
+    for (final projectile in projectilesCopy) {
+      if (projectile.isMounted) {
+        projectile.removeFromParent();
+      }
+    }
+    currentProjectiles.clear();
+    
+    // Remove existing hero if mounted
+    if (hero.isMounted) {
+      hero.removeFromParent();
     }
     
-    // Reset all hero stats to initial values
-    hero.health = 100.0;
-    hero.maxHealth = 100.0;
-    hero.energy = 100.0;
-    hero.maxEnergy = 100.0;
-    hero.coins = 0;
+    // Recreate hero with selected type and reset stats
+    hero = Hero(position: Vector2(arenaWidth / 2, arenaHeight / 2), heroId: selectedHeroId);
+    
+    // Reset all upgrade multipliers
     hero.attackSpeedMultiplier = 1.0;
     hero.speedMultiplier = 1.0;
-    hero.dashCooldownMultiplier = 1.0;
-    hero.position = Vector2(arenaWidth / 2, arenaHeight / 2);
+    hero.abilityCooldownMultiplier = 1.0;
+    
+    add(hero);
     
     // Reset game state
     gameState = GameState.playing;
     currentWave = 1;
+    waveTimer = 0.0;
+    enemySpawnTimer = 0.0;
     
     // Ensure HUD is added and properly updated
     if (!hud.isMounted) {
@@ -156,17 +187,12 @@ class CircleRougeGame extends FlameGame
   void showStartMenu() {
     gameState = GameState.startMenu;
     
-    // Remove end menu if it exists
-    if (endMenu != null && endMenu!.isMounted) {
-      endMenu!.removeFromParent();
-      endMenu = null;
-    }
-    
-    // Remove pause menu if it exists
-    if (pauseMenu != null && pauseMenu!.isMounted) {
-      pauseMenu!.removeFromParent();
-      pauseMenu = null;
-    }
+    // Remove all overlays and show start menu
+    overlays.remove('GameOver');
+    overlays.remove('Victory');
+    overlays.remove('PauseMenu');
+    overlays.remove('HeroSelection');
+    overlays.add('StartMenu');
     
     // Remove game components
     if (hero.isMounted) {
@@ -179,16 +205,28 @@ class CircleRougeGame extends FlameGame
       shopPanel.removeFromParent();
     }
     
-    // Add start menu back
-    if (!startMenu.isMounted) {
-      add(startMenu);
-    }
-    
     // Clear enemies
-    for (final enemy in currentEnemies) {
-      enemy.removeFromParent();
+    final enemiesCopy = List<Component>.from(currentEnemies);
+    for (final enemy in enemiesCopy) {
+      if (enemy.isMounted) {
+        enemy.removeFromParent();
+      }
     }
     currentEnemies.clear();
+    
+    // Clear projectiles
+    final projectilesCopy = List<Component>.from(currentProjectiles);
+    for (final projectile in projectilesCopy) {
+      if (projectile.isMounted) {
+        projectile.removeFromParent();
+      }
+    }
+    currentProjectiles.clear();
+    
+    // Reset timers
+    waveTimer = 0.0;
+    enemySpawnTimer = 0.0;
+    currentWave = 1;
   }
   
   void startWave(int waveNumber) {
@@ -198,6 +236,9 @@ class CircleRougeGame extends FlameGame
     // Reset wave timer
     waveTimer = 0.0;
     enemySpawnTimer = 0.0;
+    
+    // Set spawn interval from wave config
+    enemySpawnInterval = WaveConfig.instance.getSpawnInterval(currentWave);
     
     // Make sure shop is removed during gameplay
     if (shopPanel.isMounted) {
@@ -265,12 +306,28 @@ class CircleRougeGame extends FlameGame
     // No longer check for wave completion here - waves are time-based now
   }
   
+  void addProjectile(Component projectile) {
+    currentProjectiles.add(projectile);
+  }
+  
+  void onProjectileDestroyed(Component projectile) {
+    currentProjectiles.remove(projectile);
+  }
+  
   void onWaveComplete() {
     // Clear all remaining enemies at wave end
-    for (final enemy in currentEnemies) {
+    final enemiesCopy = List<Component>.from(currentEnemies);
+    for (final enemy in enemiesCopy) {
       enemy.removeFromParent();
     }
     currentEnemies.clear();
+    
+    // Clear all remaining projectiles at wave end
+    final projectilesCopy = List<Component>.from(currentProjectiles);
+    for (final projectile in projectilesCopy) {
+      projectile.removeFromParent();
+    }
+    currentProjectiles.clear();
     
     // Activate hero invincibility
     hero.activateInvincibility();
@@ -278,8 +335,7 @@ class CircleRougeGame extends FlameGame
     if (currentWave >= maxWaves) {
       // Game complete - show victory screen
       gameState = GameState.victory;
-      endMenu = EndMenu(isVictory: true);
-      add(endMenu!);
+      overlays.add('Victory');
     } else {
       // Show shop
       gameState = GameState.shopping;
@@ -302,25 +358,20 @@ class CircleRougeGame extends FlameGame
   
   void onHeroDeath() {
     gameState = GameState.gameOver;
-    endMenu = EndMenu(isVictory: false);
-    add(endMenu!);
+    overlays.add('GameOver');
   }
   
   void pauseGame() {
     if (gameState == GameState.playing) {
       gameState = GameState.paused;
-      pauseMenu = PauseMenu();
-      add(pauseMenu!);
+      overlays.add('PauseMenu');
     }
   }
   
   void resumeGame() {
     if (gameState == GameState.paused) {
       gameState = GameState.playing;
-      if (pauseMenu != null && pauseMenu!.isMounted) {
-        pauseMenu!.removeFromParent();
-        pauseMenu = null;
-      }
+      overlays.remove('PauseMenu');
     }
   }
   
@@ -350,20 +401,25 @@ class CircleRougeGame extends FlameGame
       final remainingTime = (waveDuration - waveTimer).clamp(0.0, waveDuration);
       hud.updateWaveTimer(remainingTime);
       
-      // Spawn enemies periodically
+      // Spawn enemies periodically using new system
       if (enemySpawnTimer >= enemySpawnInterval) {
-        _spawnRandomEnemy();
+        _spawnEnemyGroup();
         enemySpawnTimer = 0.0;
-        
-        // Calculate spawn interval using config
-        final waveProgress = waveTimer / waveDuration;
-        enemySpawnInterval = WaveConfig.instance.calculateSpawnInterval(currentWave, waveProgress);
       }
       
       // Check if wave is complete
       if (waveTimer >= waveDuration) {
         onWaveComplete();
       }
+    }
+  }
+  
+  void _spawnEnemyGroup() {
+    final spawnCount = WaveConfig.instance.getSpawnCount(currentWave);
+    
+    // Spawn multiple enemies based on spawn_count
+    for (int i = 0; i < spawnCount; i++) {
+      _spawnRandomEnemy();
     }
   }
   

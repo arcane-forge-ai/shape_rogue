@@ -12,6 +12,17 @@ class EnemyChaser extends CircleComponent with HasGameRef<CircleRougeGame> {
   
   double health = 30.0;
   
+  // Stun system
+  bool isStunned = false;
+  double stunTimer = 0.0;
+  double stunDuration = 0.0;
+  
+  // Slow effect system
+  bool isSlowed = false;
+  double slowTimer = 0.0;
+  double slowDuration = 3.0; // Slow lasts 3 seconds
+  double speedMultiplier = 1.0;
+  
   EnemyChaser() : super(
     radius: 12.0 * CircleRougeGame.scaleFactor,
     paint: Paint()..color = const Color(0xFFFF5722),
@@ -21,17 +32,49 @@ class EnemyChaser extends CircleComponent with HasGameRef<CircleRougeGame> {
   void update(double dt) {
     super.update(dt);
     
+    // Update stun timer
+    if (isStunned) {
+      stunTimer += dt;
+      if (stunTimer >= stunDuration) {
+        isStunned = false;
+        stunTimer = 0.0;
+        paint.color = const Color(0xFFFF5722); // Reset to normal color
+      } else {
+        // Flash between red and yellow while stunned
+        final flashTime = (stunTimer * 4) % 1.0;
+        paint.color = flashTime < 0.5 ? const Color(0xFFFFFF00) : const Color(0xFFFF0000);
+        return; // Don't move while stunned
+      }
+    }
+    
+    // Update slow timer
+    if (isSlowed) {
+      slowTimer += dt;
+      if (slowTimer >= slowDuration) {
+        isSlowed = false;
+        slowTimer = 0.0;
+        speedMultiplier = 1.0;
+        paint.color = const Color(0xFFFF5722); // Reset to normal color
+      } else {
+        // Blink transparency between 70% and 100% while slowed
+        final blinkTime = (slowTimer * 3) % 1.0; // 3 blinks per second
+        final alpha = (0.7 + 0.3 * sin(blinkTime * 2 * pi)).clamp(0.7, 1.0);
+        paint.color = Color.fromRGBO(255, 87, 34, alpha); // Orange with varying alpha
+      }
+    }
+    
     // Always move toward the player (chasers should chase!)
     final playerPosition = gameRef.hero.position;
     final direction = (playerPosition - position).normalized();
     
-    position += direction * speed * dt;
+    // Apply speed multiplier for slow effect
+    position += direction * speed * speedMultiplier * dt;
     
     // Keep within safe area
     _constrainToSafeArea();
     
     // Check collision with hero
-    if (position.distanceTo(playerPosition) < radius + gameRef.hero.radius) {
+    if (position.distanceTo(playerPosition) < radius + gameRef.hero.collisionRadius) {
       _hitHero();
     }
     
@@ -67,5 +110,17 @@ class EnemyChaser extends CircleComponent with HasGameRef<CircleRougeGame> {
       gameRef.onEnemyDestroyed(this);
       removeFromParent();
     }
+  }
+  
+  void stun(double duration) {
+    isStunned = true;
+    stunDuration = duration;
+    stunTimer = 0.0;
+  }
+  
+  void applySlowEffect(double multiplier) {
+    isSlowed = true;
+    speedMultiplier = multiplier;
+    slowTimer = 0.0;
   }
 } 

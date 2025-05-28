@@ -4,28 +4,16 @@ import 'package:flutter/services.dart';
 class WaveSettings {
   final int maxWaves;
   final double waveDuration;
-  final double baseSpawnInterval;
-  final double spawnIntervalReductionPerWave;
-  final double withinWaveProgressionMultiplier;
-  final double minimumSpawnInterval;
   
   WaveSettings({
     required this.maxWaves,
     required this.waveDuration,
-    required this.baseSpawnInterval,
-    required this.spawnIntervalReductionPerWave,
-    required this.withinWaveProgressionMultiplier,
-    required this.minimumSpawnInterval,
   });
   
   factory WaveSettings.fromJson(Map<String, dynamic> json) {
     return WaveSettings(
       maxWaves: json['max_waves'],
       waveDuration: json['wave_duration'].toDouble(),
-      baseSpawnInterval: json['base_spawn_interval'].toDouble(),
-      spawnIntervalReductionPerWave: json['spawn_interval_reduction_per_wave'].toDouble(),
-      withinWaveProgressionMultiplier: json['within_wave_progression_multiplier'].toDouble(),
-      minimumSpawnInterval: json['minimum_spawn_interval'].toDouble(),
     );
   }
 }
@@ -36,6 +24,8 @@ class WaveData {
   final String description;
   final List<String> enemyTypes;
   final Map<String, double> spawnWeights;
+  final double spawnInterval;
+  final int spawnCount;
   
   WaveData({
     required this.wave,
@@ -43,6 +33,8 @@ class WaveData {
     required this.description,
     required this.enemyTypes,
     required this.spawnWeights,
+    required this.spawnInterval,
+    required this.spawnCount,
   });
   
   factory WaveData.fromJson(Map<String, dynamic> json) {
@@ -54,6 +46,8 @@ class WaveData {
       spawnWeights: Map<String, double>.from(
         json['spawn_weights'].map((key, value) => MapEntry(key, value.toDouble()))
       ),
+      spawnInterval: (json['spawn_interval'] ?? 2.0).toDouble(),
+      spawnCount: json['spawn_count'] ?? 1,
     );
   }
 }
@@ -108,10 +102,6 @@ class WaveConfig {
       _settings = WaveSettings(
         maxWaves: 5,
         waveDuration: 30.0,
-        baseSpawnInterval: 2.0,
-        spawnIntervalReductionPerWave: 0.2,
-        withinWaveProgressionMultiplier: 0.5,
-        minimumSpawnInterval: 0.2,
       );
       _waves = [];
       _enemyRewards = {};
@@ -127,13 +117,15 @@ class WaveConfig {
     return _enemyRewards[enemyType];
   }
   
-  double calculateSpawnInterval(int currentWave, double waveProgress) {
-    if (_settings == null) return 2.0;
-    
-    final baseInterval = _settings!.baseSpawnInterval - 
-        (currentWave - 1) * _settings!.spawnIntervalReductionPerWave;
-    final progressReduction = waveProgress * _settings!.withinWaveProgressionMultiplier;
-    
-    return (baseInterval - progressReduction).clamp(_settings!.minimumSpawnInterval, _settings!.baseSpawnInterval);
+  // Get spawn interval for a specific wave
+  double getSpawnInterval(int waveNumber) {
+    final waveData = getWaveData(waveNumber);
+    return waveData?.spawnInterval ?? 2.0; // Default fallback
+  }
+  
+  // Get spawn count for a specific wave
+  int getSpawnCount(int waveNumber) {
+    final waveData = getWaveData(waveNumber);
+    return waveData?.spawnCount ?? 1; // Default fallback
   }
 } 

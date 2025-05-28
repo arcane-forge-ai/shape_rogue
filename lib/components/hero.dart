@@ -6,16 +6,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../game/circle_rouge_game.dart';
+import '../config/hero_config.dart';
+import 'abilities/hex_field.dart';
+import 'enemies/enemy_chaser.dart';
+import 'enemies/enemy_shooter.dart';
+import 'enemies/piercing_projectile.dart';
 import 'enemies/projectile.dart';
+import 'shapes/custom_shapes.dart';
 
-class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHandler {
+class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardHandler {
+  // Hero configuration
+  late HeroData heroData;
+  
+  // Hero visual properties
+  late double heroRadius;
+  late Paint heroPaint;
+  
   // Base movement properties - will be scaled based on arena size
   static const double baseMoveSpeed = 200.0;
   
-  // Base dash properties
+  // Base dash properties (for heroes that don't have special abilities)
   static const double baseDashDistance = 120.0;
   static const double baseDashSpeed = 500.0;
-  static const double dashCooldown = 2.0;
   
   // Base shooting properties
   static const double baseShootRange = 250.0;
@@ -23,7 +35,7 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   double lastShotTime = 0.0;
   
   // Get scaled values based on arena size
-  double get moveSpeed => baseMoveSpeed * CircleRougeGame.scaleFactor;
+  double get moveSpeed => (heroData.moveSpeed / 320.0 * baseMoveSpeed) * CircleRougeGame.scaleFactor;
   double get dashDistance => baseDashDistance * CircleRougeGame.scaleFactor;
   double get dashSpeed => baseDashSpeed * CircleRougeGame.scaleFactor;
   double get shootRange => baseShootRange * CircleRougeGame.scaleFactor;
@@ -34,12 +46,13 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   // Movement speed modifier (can be upgraded)
   double speedMultiplier = 1.0;
   
-  // Dash cooldown modifier (can be upgraded to reduce cooldown)
-  double dashCooldownMultiplier = 1.0;
+  // Ability cooldown modifier (can be upgraded)
+  double abilityCooldownMultiplier = 1.0;
   
-  bool isDashing = false;
-  double lastDashTime = -double.infinity;
-  Vector2? dashTarget;
+  // Ability system
+  double lastAbilityTime = -double.infinity;
+  bool isUsingAbility = false;
+  Vector2? abilityTarget;
   
   // Hero stats
   double health = 100.0;
@@ -56,11 +69,139 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   // Input tracking
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   
-  Hero({required Vector2 position}) : super(
-    radius: 15.0 * CircleRougeGame.scaleFactor,
-    paint: Paint()..color = const Color(0xFF4CAF50),
+  Hero({required Vector2 position, String heroId = 'circle'}) : super(
     position: position,
-  );
+    size: Vector2.all(30.0 * CircleRougeGame.scaleFactor),
+    anchor: Anchor.center,
+  ) {
+    heroRadius = 15.0 * CircleRougeGame.scaleFactor;
+    heroPaint = Paint()..color = const Color(0xFF4CAF50);
+    _initializeHero(heroId);
+  }
+  
+  void _initializeHero(String heroId) {
+    final heroConfig = HeroConfig.instance.getHeroById(heroId);
+    if (heroConfig != null) {
+      heroData = heroConfig;
+      health = heroData.health;
+      maxHealth = heroData.health;
+      heroPaint.color = heroData.color;
+    } else {
+      // Fallback to default circle hero
+      heroData = HeroConfig.instance.defaultHero;
+      health = heroData.health;
+      maxHealth = heroData.health;
+      heroPaint.color = heroData.color;
+    }
+  }
+  
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    
+    final shapeSize = size.x;
+    
+    switch (heroData.shape) {
+      case 'circle':
+        canvas.drawCircle(
+          Offset(size.x / 2, size.y / 2),
+          heroRadius,
+          heroPaint,
+        );
+        break;
+      case 'triangle':
+        _drawTriangle(canvas, shapeSize);
+        break;
+      case 'square':
+        canvas.drawRect(
+          Rect.fromCenter(
+            center: Offset(size.x / 2, size.y / 2),
+            width: shapeSize * 0.8,
+            height: shapeSize * 0.8,
+          ),
+          heroPaint,
+        );
+        break;
+      case 'pentagon':
+        _drawPentagon(canvas, shapeSize);
+        break;
+      case 'hexagon':
+        _drawHexagon(canvas, shapeSize);
+        break;
+      default:
+        canvas.drawCircle(
+          Offset(size.x / 2, size.y / 2),
+          heroRadius,
+          heroPaint,
+        );
+    }
+  }
+  
+  void _drawTriangle(Canvas canvas, double shapeSize) {
+    final path = Path();
+    final center = Offset(size.x / 2, size.y / 2);
+    final halfSize = heroRadius;
+    
+    path.moveTo(center.dx, center.dy - halfSize); // Top point
+    path.lineTo(center.dx - halfSize * cos(pi / 6), center.dy + halfSize / 2); // Bottom left
+    path.lineTo(center.dx + halfSize * cos(pi / 6), center.dy + halfSize / 2); // Bottom right
+    path.close();
+    
+    canvas.drawPath(path, heroPaint);
+  }
+  
+  void _drawPentagon(Canvas canvas, double shapeSize) {
+    final path = Path();
+    final center = Offset(size.x / 2, size.y / 2);
+    final radius = heroRadius;
+    final angleStep = 2 * pi / 5;
+    
+    for (int i = 0; i < 5; i++) {
+      final angle = -pi / 2 + i * angleStep;
+      final x = center.dx + radius * cos(angle);
+      final y = center.dy + radius * sin(angle);
+      
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    
+    canvas.drawPath(path, heroPaint);
+  }
+  
+  void _drawHexagon(Canvas canvas, double shapeSize) {
+    final path = Path();
+    final center = Offset(size.x / 2, size.y / 2);
+    final radius = heroRadius;
+    final angleStep = 2 * pi / 6;
+    
+    for (int i = 0; i < 6; i++) {
+      final angle = -pi / 2 + i * angleStep;
+      final x = center.dx + radius * cos(angle);
+      final y = center.dy + radius * sin(angle);
+      
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    
+    canvas.drawPath(path, heroPaint);
+  }
+  
+  // Collision detection method for other components to use
+  bool containsPoint(Vector2 point) {
+    final distance = position.distanceTo(point);
+    return distance <= heroRadius;
+  }
+  
+  // Get collision radius for enemy collision detection
+  double get collisionRadius => heroRadius;
   
   @override
   void update(double dt) {
@@ -75,8 +216,8 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
       }
     }
     
-    if (isDashing) {
-      _updateDash(dt);
+    if (isUsingAbility) {
+      _updateAbility(dt);
     } else {
       _updateMovement(dt);
     }
@@ -92,8 +233,8 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     // Keep hero within arena bounds
     _constrainToArena();
     
-    // Update dash cooldown in HUD
-    _updateDashCooldownDisplay();
+    // Update ability cooldown in HUD
+    _updateAbilityCooldownDisplay();
   }
   
   void _tryAutoShoot() {
@@ -132,6 +273,7 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
       speed: 400.0 * CircleRougeGame.scaleFactor,
       damage: 25.0,
       isEnemyProjectile: false,
+      heroColor: heroData.color,
     );
     
     gameRef.add(projectile);
@@ -165,66 +307,97 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     }
   }
   
-  void _updateDash(double dt) {
-    if (dashTarget == null) {
-      isDashing = false;
+  void _updateAbility(double dt) {
+    // Handle different ability types based on hero configuration
+    switch (heroData.ability.type) {
+      case 'dash_damage':
+        _updateDashDamage(dt);
+        break;
+      case 'piercing_shot':
+        // Piercing shot is instant, no update needed
+        isUsingAbility = false;
+        break;
+      case 'area_stun':
+        // Area stun is instant, no update needed
+        isUsingAbility = false;
+        break;
+      case 'radial_burst':
+        // Radial burst is instant, no update needed
+        isUsingAbility = false;
+        break;
+      case 'area_field':
+        // Area field is instant placement, no update needed
+        isUsingAbility = false;
+        break;
+      default:
+        isUsingAbility = false;
+    }
+  }
+  
+  void _updateDashDamage(double dt) {
+    if (abilityTarget == null) {
+      isUsingAbility = false;
       return;
     }
     
-    final direction = (dashTarget! - position).normalized();
+    final direction = (abilityTarget! - position).normalized();
     final movement = direction * dashSpeed * dt;
     
-    if (position.distanceTo(dashTarget!) <= movement.length) {
-      position = dashTarget!;
-      isDashing = false;
-      dashTarget = null;
+    // Check for enemy collisions during dash
+    for (final enemy in gameRef.currentEnemies) {
+      if (enemy is PositionComponent && enemy is CircleComponent) {
+        final distanceToEnemy = position.distanceTo(enemy.position);
+        final enemyRadius = (enemy as CircleComponent).radius;
+        if (distanceToEnemy < heroRadius + enemyRadius) {
+          // Damage enemy during rolling surge
+          if (enemy.parent != null) {
+            gameRef.onEnemyDestroyed(enemy);
+          }
+        }
+      }
+    }
+    
+    if (position.distanceTo(abilityTarget!) <= movement.length) {
+      position = abilityTarget!;
+      isUsingAbility = false;
+      abilityTarget = null;
     } else {
       position += movement;
     }
   }
   
-  void _constrainToArena() {
-    position.x = position.x.clamp(radius, CircleRougeGame.arenaWidth - radius);
-    position.y = position.y.clamp(radius, CircleRougeGame.arenaHeight - radius);
-  }
-  
-  @override
-  bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
-    _pressedKeys.clear();
-    _pressedKeys.addAll(keysPressed);
-    
-    // Handle pause functionality with Esc key
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-      if (gameRef.gameState == GameState.playing) {
-        gameRef.pauseGame();
-        return true;
-      } else if (gameRef.gameState == GameState.paused) {
-        gameRef.resumeGame();
-        return true;
-      }
-    }
-    
-    // Handle dash ability
-    if (event is KeyDownEvent && 
-        (event.logicalKey == LogicalKeyboardKey.space || 
-         event.logicalKey == LogicalKeyboardKey.keyK ||
-         event.logicalKey == LogicalKeyboardKey.keyE)) {
-      _tryDash();
-      return true;
-    }
-    
-    return false;
-  }
-  
-  void _tryDash() {
+  void _tryAbility() {
     final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
-    final effectiveDashCooldown = dashCooldown * dashCooldownMultiplier;
+    final effectiveCooldown = heroData.ability.cooldown * abilityCooldownMultiplier;
     
-    if (currentTime - lastDashTime < effectiveDashCooldown || energy < 25) {
-      return; // Dash on cooldown or not enough energy
+    if (currentTime - lastAbilityTime < effectiveCooldown || energy < 25) {
+      return; // Ability on cooldown or not enough energy
     }
     
-    // Get current input direction
+    switch (heroData.ability.type) {
+      case 'dash_damage':
+        _executeDashDamage();
+        break;
+      case 'piercing_shot':
+        _executePiercingShot();
+        break;
+      case 'area_stun':
+        _executeAreaStun();
+        break;
+      case 'radial_burst':
+        _executeRadialBurst();
+        break;
+      case 'area_field':
+        _executeAreaField();
+        break;
+    }
+    
+    lastAbilityTime = currentTime;
+    energy -= 25; // Ability costs energy
+  }
+  
+  void _executeDashDamage() {
+    // Get current input direction for rolling surge
     Vector2 dashDirection = Vector2.zero();
     
     if (_pressedKeys.contains(LogicalKeyboardKey.keyW) || 
@@ -250,20 +423,160 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     }
     
     dashDirection.normalize();
-    dashTarget = position + dashDirection * dashDistance;
+    final scaledRange = heroData.ability.range * CircleRougeGame.scaleFactor;
+    abilityTarget = position + dashDirection * scaledRange;
     
-    // Constrain dash target to arena
-    dashTarget!.x = dashTarget!.x.clamp(radius, CircleRougeGame.arenaWidth - radius);
-    dashTarget!.y = dashTarget!.y.clamp(radius, CircleRougeGame.arenaHeight - radius);
+    // Constrain ability target to arena
+    abilityTarget!.x = abilityTarget!.x.clamp(heroRadius, CircleRougeGame.arenaWidth - heroRadius);
+    abilityTarget!.y = abilityTarget!.y.clamp(heroRadius, CircleRougeGame.arenaHeight - heroRadius);
     
-    isDashing = true;
-    lastDashTime = currentTime;
-    energy -= 25; // Dash costs energy
+    isUsingAbility = true;
+  }
+  
+  void _executePiercingShot() {
+    // Find direction to nearest enemy or shoot forward
+    Vector2 direction = Vector2(0, -1); // Default forward
+    
+    Component? nearestEnemy;
+    double nearestDistance = double.infinity;
+    
+    for (final enemy in gameRef.currentEnemies) {
+      if (enemy is PositionComponent) {
+        final distance = position.distanceTo(enemy.position);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestEnemy = enemy;
+        }
+      }
+    }
+    
+    if (nearestEnemy != null && nearestEnemy is PositionComponent) {
+      direction = (nearestEnemy.position - position).normalized();
+    }
+    
+    // Create piercing projectile
+    final projectile = PiercingProjectile(
+      startPosition: position.clone(),
+      direction: direction,
+      speed: 500.0 * CircleRougeGame.scaleFactor,
+      damage: heroData.ability.damage,
+      range: heroData.ability.range * CircleRougeGame.scaleFactor,
+      heroColor: heroData.color,
+    );
+    
+    gameRef.add(projectile);
+  }
+  
+  void _executeAreaStun() {
+    // Stun all enemies within range
+    final scaledRange = heroData.ability.range * CircleRougeGame.scaleFactor;
+    final stunDuration = heroData.ability.duration ?? 3.0;
+    
+    for (final enemy in gameRef.currentEnemies) {
+      if (enemy is PositionComponent) {
+        final distance = position.distanceTo(enemy.position);
+        if (distance <= scaledRange) {
+          // Apply stun effect to different enemy types
+          if (enemy is EnemyChaser) {
+            enemy.stun(stunDuration);
+          } else if (enemy is EnemyShooter) {
+            enemy.stun(stunDuration);
+          }
+        }
+      }
+    }
+    
+    // Visual feedback - create a brief shockwave effect
+    // This could be enhanced with a proper visual component
+    print('Shield Bash! Stunned enemies for ${stunDuration}s');
+  }
+  
+  void _executeRadialBurst() {
+    // Fire projectiles in all directions
+    final projectileCount = heroData.ability.projectileCount ?? 5;
+    final angleStep = (2 * pi) / projectileCount;
+    
+    for (int i = 0; i < projectileCount; i++) {
+      final angle = i * angleStep;
+      final direction = Vector2(cos(angle), sin(angle));
+      
+      final projectile = Projectile(
+        startPosition: position.clone(),
+        direction: direction,
+        speed: 400.0 * CircleRougeGame.scaleFactor,
+        damage: heroData.ability.damage,
+        isEnemyProjectile: false,
+        heroColor: heroData.color,
+      );
+      
+      gameRef.add(projectile);
+    }
+  }
+  
+  void _executeAreaField() {
+    // Create visual hex field effect
+    final scaledRange = heroData.ability.range * CircleRougeGame.scaleFactor;
+    final duration = heroData.ability.duration ?? 4.0;
+    
+    final hexField = HexField(
+      position: position.clone(),
+      radius: scaledRange,
+      duration: duration,
+      damage: heroData.ability.damage,
+      slowPercent: heroData.ability.slowPercent ?? 0.3,
+    );
+    
+    gameRef.add(hexField);
+  }
+  
+  void _updateAbilityCooldownDisplay() {
+    final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
+    final timeSinceLastAbility = currentTime - lastAbilityTime;
+    final effectiveCooldown = heroData.ability.cooldown * abilityCooldownMultiplier;
+    final cooldownPercent = (timeSinceLastAbility / effectiveCooldown).clamp(0.0, 1.0);
+    final remainingSeconds = (effectiveCooldown - timeSinceLastAbility).clamp(0.0, effectiveCooldown);
+    
+    if (gameRef.hud.isMounted) {
+      gameRef.hud.updateAbilityCooldown(cooldownPercent, remainingSeconds);
+    }
+  }
+  
+  void _constrainToArena() {
+    position.x = position.x.clamp(heroRadius, CircleRougeGame.arenaWidth - heroRadius);
+    position.y = position.y.clamp(heroRadius, CircleRougeGame.arenaHeight - heroRadius);
+  }
+  
+  @override
+  bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+    _pressedKeys.clear();
+    _pressedKeys.addAll(keysPressed);
+    
+    // Handle pause functionality with Esc key
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+      if (gameRef.gameState == GameState.playing) {
+        gameRef.pauseGame();
+        return true;
+      } else if (gameRef.gameState == GameState.paused) {
+        gameRef.resumeGame();
+        return true;
+      }
+    }
+    
+    // Handle ability
+    if (event is KeyDownEvent && 
+        (event.logicalKey == LogicalKeyboardKey.space || 
+         event.logicalKey == LogicalKeyboardKey.keyK ||
+         event.logicalKey == LogicalKeyboardKey.keyE)) {
+      _tryAbility();
+      return true;
+    }
+    
+    return false;
   }
   
   void takeDamage(double damage) {
-    if (isInvincible || isDashing) {
-      return; // No damage while invincible or dashing
+    if (isInvincible || isUsingAbility) {
+      return; // No damage while invincible or using ability
     }
     
     health = (health - damage).clamp(0, maxHealth);
@@ -283,17 +596,6 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   
   void spendCoins(int amount) {
     coins = max(0, coins - amount);
-  }
-  
-  void _updateDashCooldownDisplay() {
-    final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
-    final timeSinceLastDash = currentTime - lastDashTime;
-    final effectiveDashCooldown = dashCooldown * dashCooldownMultiplier;
-    final cooldownPercent = (timeSinceLastDash / effectiveDashCooldown).clamp(0.0, 1.0);
-    
-    if (gameRef.hud.isMounted) {
-      gameRef.hud.updateDashCooldown(cooldownPercent);
-    }
   }
   
   void activateInvincibility() {
