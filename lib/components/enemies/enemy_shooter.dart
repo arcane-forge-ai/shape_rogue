@@ -7,16 +7,19 @@ import '../../game/circle_rouge_game.dart';
 import 'projectile.dart';
 
 class EnemyShooter extends CircleComponent with HasGameRef<CircleRougeGame> {
-  static const double speed = 5.0; // Doubled speed
-  static const double attackRange = 12.0 * 60; // Doubled range
+  static const double baseSpeed = 100.0;
+  static const double baseAttackRange = 200.0;
   static const double fireRate = 1.5; // Shots per second
   static const double damage = 5.0;
+  
+  double get speed => baseSpeed * CircleRougeGame.scaleFactor;
+  double get attackRange => baseAttackRange * CircleRougeGame.scaleFactor;
   
   double health = 40.0;
   double lastShotTime = 0.0;
   
   EnemyShooter() : super(
-    radius: 20.0, // Doubled size
+    radius: 12.0 * CircleRougeGame.scaleFactor,
     paint: Paint()..color = const Color(0xFF9C27B0),
   );
   
@@ -29,22 +32,26 @@ class EnemyShooter extends CircleComponent with HasGameRef<CircleRougeGame> {
     final arenaCenter = Vector2(CircleRougeGame.arenaWidth / 2, CircleRougeGame.arenaHeight / 2);
     final distanceToCenter = position.distanceTo(arenaCenter);
     
+    // Scaled distance thresholds
+    final maxCenterDistance = (CircleRougeGame.arenaWidth + CircleRougeGame.arenaHeight) / 4;
+    final optimalPlayerDistance = 80.0 * CircleRougeGame.scaleFactor;
+    
     // Face the player
     final direction = (playerPosition - position).normalized();
     
     // If too far from arena center, move back towards center
-    if (distanceToCenter > 600) { // Doubled threshold
+    if (distanceToCenter > maxCenterDistance) {
       final centerDirection = (arenaCenter - position).normalized();
-      position += centerDirection * speed * dt * 60;
+      position += centerDirection * speed * dt;
     } else if (distanceToPlayer <= attackRange && _canFire()) {
       // In range - fire at player
       _fireProjectile(direction);
-    } else if (distanceToPlayer > 200) { // Too far from player - move closer
-      position += direction * speed * dt * 60;
+    } else if (distanceToPlayer > optimalPlayerDistance * 1.5) { // Too far from player - move closer
+      position += direction * speed * dt;
     } else {
       // Too close to player - move away
       final retreatDirection = -direction;
-      position += retreatDirection * speed * dt * 60;
+      position += retreatDirection * speed * dt;
     }
     
     // Keep within safe area
@@ -55,8 +62,9 @@ class EnemyShooter extends CircleComponent with HasGameRef<CircleRougeGame> {
       _hitHero();
     }
     
-    // Remove if too far from arena (cleanup) - doubled threshold
-    if (position.distanceTo(arenaCenter) > 800) {
+    // Remove if too far from arena (cleanup)
+    final cleanupDistance = (CircleRougeGame.arenaWidth + CircleRougeGame.arenaHeight) / 3;
+    if (position.distanceTo(arenaCenter) > cleanupDistance) {
       removeFromParent();
     }
   }
@@ -85,7 +93,7 @@ class EnemyShooter extends CircleComponent with HasGameRef<CircleRougeGame> {
     final projectile = Projectile(
       startPosition: position.clone(),
       direction: direction,
-      speed: 400.0, // Doubled speed
+      speed: 300.0 * CircleRougeGame.scaleFactor,
       damage: 15.0,
       isEnemyProjectile: true,
     );

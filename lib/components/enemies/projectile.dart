@@ -21,7 +21,7 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
     required this.damage,
     this.isEnemyProjectile = false,
   }) : super(
-    radius: 12.0,
+    radius: 6.0 * CircleRougeGame.scaleFactor, // 50% smaller and scaled
     paint: Paint()..color = isEnemyProjectile ? const Color(0xFFFF1744) : const Color(0xFF00BCD4),
     position: startPosition,
   );
@@ -47,9 +47,10 @@ class Projectile extends CircleComponent with HasGameRef<CircleRougeGame> {
     } else {
       // Hero projectile - check collision with enemies
       for (final enemy in gameRef.currentEnemies) {
-        if (enemy is PositionComponent) {
+        if (enemy is PositionComponent && enemy is CircleComponent) {
           final distanceToEnemy = position.distanceTo(enemy.position);
-          if (distanceToEnemy < radius + 24) {
+          final enemyRadius = (enemy as CircleComponent).radius;
+          if (distanceToEnemy < radius + enemyRadius) {
             // Hit enemy
             if (enemy is EnemyChaser) {
               enemy.takeDamage(damage);

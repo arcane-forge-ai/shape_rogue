@@ -19,14 +19,46 @@ class CircleRougeApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: CircleRougeGame.arenaWidth,
-            height: CircleRougeGame.arenaHeight,
-            child: GameWidget<CircleRougeGame>.controlled(
-              gameFactory: CircleRougeGame.new,
-            ),
-          ),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate scaling factor to fit screen while maintaining aspect ratio
+            final screenWidth = constraints.maxWidth;
+            final screenHeight = constraints.maxHeight;
+            
+            // TODO: add a debug text to show the screen size and the game size
+            print('Screen size: $screenWidth x $screenHeight');
+            
+            double scaledWidth, scaledHeight;
+            
+            // Use a base aspect ratio for initial calculation
+            final baseGameAspectRatio = 4.0 / 3.0; // 4:3 ratio
+            final screenAspectRatio = screenWidth / screenHeight;
+            
+            if (screenAspectRatio > baseGameAspectRatio) {
+              // Screen is wider than game - fit to height
+              scaledHeight = screenHeight;
+              scaledWidth = screenHeight * baseGameAspectRatio;
+            } else {
+              // Screen is taller than game - fit to width
+              scaledWidth = screenWidth;
+              scaledHeight = screenWidth / baseGameAspectRatio;
+            }
+            print('Scaled size: $scaledWidth x $scaledHeight');
+            
+            return Center(
+              child: SizedBox(
+                width: scaledWidth,
+                height: scaledHeight,
+                child: GameWidget<CircleRougeGame>.controlled(
+                  gameFactory: () {
+                    final game = CircleRougeGame();
+                    game.updateScreenDimensions(scaledWidth, scaledHeight);
+                    return game;
+                  },
+                ),
+              ),
+            );
+          },
         ),
       ),
       debugShowCheckedModeBanner: false,

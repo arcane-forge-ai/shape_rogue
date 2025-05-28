@@ -19,10 +19,10 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
   late RectangleComponent statusPanel;
   late TextComponent statusText;
   
-  static const double barWidth = 600.0; // Doubled width
-  static const double healthBarHeight = 50.0; // Doubled height
-  static const double energyBarHeight = 30.0; // Doubled height
-  static const double margin = 20.0; // Doubled margin
+  static double get barWidth => 250.0 * CircleRougeGame.scaleFactor;
+  static double get healthBarHeight => 20.0 * CircleRougeGame.scaleFactor;
+  static double get energyBarHeight => 15.0 * CircleRougeGame.scaleFactor;
+  static double get margin => 8.0 * CircleRougeGame.scaleFactor;
   
   @override
   Future<void> onLoad() async {
@@ -48,9 +48,9 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     healthText = TextComponent(
       text: '100/100',
       textRenderer: TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 24,
+          fontSize: 14.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -63,7 +63,7 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     energyBarBg = RectangleComponent(
       size: Vector2(barWidth, energyBarHeight),
       paint: Paint()..color = const Color(0xFF424242),
-      position: Vector2(margin, margin + healthBarHeight + 10),
+      position: Vector2(margin, margin + healthBarHeight + 5 * CircleRougeGame.scaleFactor),
     );
     add(energyBarBg);
     
@@ -71,7 +71,7 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     energyBarFill = RectangleComponent(
       size: Vector2(barWidth, energyBarHeight),
       paint: Paint()..color = const Color(0xFF2196F3),
-      position: Vector2(margin, margin + healthBarHeight + 10),
+      position: Vector2(margin, margin + healthBarHeight + 5 * CircleRougeGame.scaleFactor),
     );
     add(energyBarFill);
     
@@ -79,30 +79,32 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     energyText = TextComponent(
       text: '100/100',
       textRenderer: TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 20,
+          fontSize: 12.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
       anchor: Anchor.center,
-      position: Vector2(margin + barWidth / 2, margin + healthBarHeight + 10 + energyBarHeight / 2),
+      position: Vector2(margin + barWidth / 2, margin + healthBarHeight + 5 * CircleRougeGame.scaleFactor + energyBarHeight / 2),
     );
     add(energyText);
     
     // Dash cooldown background
+    final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
+    final dashCooldownHeight = 12.0 * CircleRougeGame.scaleFactor;
     dashCooldownBg = RectangleComponent(
-      size: Vector2(200, 20),
+      size: Vector2(dashCooldownWidth, dashCooldownHeight),
       paint: Paint()..color = const Color(0xFF424242),
-      position: Vector2(margin, margin + healthBarHeight + energyBarHeight + 30),
+      position: Vector2(margin, margin + healthBarHeight + energyBarHeight + 15 * CircleRougeGame.scaleFactor),
     );
     add(dashCooldownBg);
     
     // Dash cooldown fill
     dashCooldownFill = RectangleComponent(
-      size: Vector2(200, 20),
+      size: Vector2(dashCooldownWidth, dashCooldownHeight),
       paint: Paint()..color = const Color(0xFFFFEB3B),
-      position: Vector2(margin, margin + healthBarHeight + energyBarHeight + 30),
+      position: Vector2(margin, margin + healthBarHeight + energyBarHeight + 15 * CircleRougeGame.scaleFactor),
     );
     add(dashCooldownFill);
     
@@ -110,14 +112,15 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     dashCooldownText = TextComponent(
       text: 'Dash Ready',
       textRenderer: TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 16,
+          fontSize: 10.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
       anchor: Anchor.centerLeft,
-      position: Vector2(margin + 210, margin + healthBarHeight + energyBarHeight + 40),
+      position: Vector2(margin + dashCooldownWidth + 5 * CircleRougeGame.scaleFactor, 
+                       margin + healthBarHeight + energyBarHeight + 15 * CircleRougeGame.scaleFactor + dashCooldownHeight / 2),
     );
     add(dashCooldownText);
     
@@ -125,9 +128,9 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     coinCounter = TextComponent(
       text: 'Coins: 0',
       textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFFFEB3B),
-          fontSize: 48, // Doubled size
+        style: TextStyle(
+          color: const Color(0xFFFFEB3B),
+          fontSize: 20.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -140,9 +143,9 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     waveIndicator = TextComponent(
       text: 'Wave 1',
       textRenderer: TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 56, // Doubled size
+          fontSize: 24.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -155,22 +158,24 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     waveTimerText = TextComponent(
       text: 'Time: 30s',
       textRenderer: TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 32,
+          fontSize: 16.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(CircleRougeGame.arenaWidth / 2, margin + 70),
+      position: Vector2(CircleRougeGame.arenaWidth / 2, margin + 30 * CircleRougeGame.scaleFactor),
     );
     add(waveTimerText);
     
     // Status panel
+    final statusPanelWidth = 120.0 * CircleRougeGame.scaleFactor;
+    final statusPanelHeight = 80.0 * CircleRougeGame.scaleFactor;
     statusPanel = RectangleComponent(
-      size: Vector2(200, 100),
+      size: Vector2(statusPanelWidth, statusPanelHeight),
       paint: Paint()..color = const Color(0xFF424242),
-      position: Vector2(CircleRougeGame.arenaWidth - margin - 200, margin),
+      position: Vector2(CircleRougeGame.arenaWidth - margin - statusPanelWidth, margin + 25 * CircleRougeGame.scaleFactor), // Below coin counter
     );
     add(statusPanel);
     
@@ -178,14 +183,15 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     statusText = TextComponent(
       text: 'Status: Ready',
       textRenderer: TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 24,
+          fontSize: 10.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       ),
       anchor: Anchor.topLeft,
-      position: Vector2(CircleRougeGame.arenaWidth - margin - 200 + 10, margin + 10),
+      position: Vector2(CircleRougeGame.arenaWidth - margin - statusPanelWidth + 3 * CircleRougeGame.scaleFactor, 
+                       margin + 28 * CircleRougeGame.scaleFactor), // Below coin counter
     );
     add(statusText);
   }
@@ -214,7 +220,8 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
   }
   
   void updateDashCooldown(double cooldownPercent) {
-    dashCooldownFill.size.x = 200 * cooldownPercent;
+    final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
+    dashCooldownFill.size.x = dashCooldownWidth * cooldownPercent;
     if (cooldownPercent >= 1.0) {
       dashCooldownText.text = 'Dash Ready';
       dashCooldownFill.paint.color = const Color(0xFF4CAF50);
@@ -231,25 +238,25 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     // Change color based on remaining time
     if (remainingTime > 10) {
       waveTimerText.textRenderer = TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 32,
+          fontSize: 16.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       );
     } else if (remainingTime > 5) {
       waveTimerText.textRenderer = TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.orange,
-          fontSize: 32,
+          fontSize: 16.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       );
     } else {
       waveTimerText.textRenderer = TextPaint(
-        style: const TextStyle(
+        style: TextStyle(
           color: Colors.red,
-          fontSize: 32,
+          fontSize: 16.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
         ),
       );
@@ -269,6 +276,7 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     final statusInfo = '''Max HP: ${hero.maxHealth.round()}
 Max Energy: ${hero.maxEnergy.round()}
 Attack Speed: ${(hero.attackSpeedMultiplier * 100).round()}%
+Speed: ${(hero.speedMultiplier * 100).round()}%
 Coins: ${hero.coins}''';
     
     statusText.text = statusInfo;

@@ -9,21 +9,33 @@ import '../game/circle_rouge_game.dart';
 import 'enemies/projectile.dart';
 
 class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHandler {
-  // Movement properties - doubled for bigger scale
-  static const double moveSpeed = 12.0;
+  // Base movement properties - will be scaled based on arena size
+  static const double baseMoveSpeed = 200.0;
   
-  // Dash properties - doubled for bigger scale
-  static const double dashDistance = 10.0;
-  static const double dashSpeed = 40.0;
+  // Base dash properties
+  static const double baseDashDistance = 120.0;
+  static const double baseDashSpeed = 500.0;
   static const double dashCooldown = 2.0;
   
-  // Shooting properties - doubled range and adjusted for bigger scale
-  static const double shootRange = 600.0;
+  // Base shooting properties
+  static const double baseShootRange = 250.0;
   static const double fireRate = 2.0; // Shots per second
   double lastShotTime = 0.0;
   
+  // Get scaled values based on arena size
+  double get moveSpeed => baseMoveSpeed * CircleRougeGame.scaleFactor;
+  double get dashDistance => baseDashDistance * CircleRougeGame.scaleFactor;
+  double get dashSpeed => baseDashSpeed * CircleRougeGame.scaleFactor;
+  double get shootRange => baseShootRange * CircleRougeGame.scaleFactor;
+  
   // Attack speed modifier (can be upgraded)
   double attackSpeedMultiplier = 1.0;
+  
+  // Movement speed modifier (can be upgraded)
+  double speedMultiplier = 1.0;
+  
+  // Dash cooldown modifier (can be upgraded to reduce cooldown)
+  double dashCooldownMultiplier = 1.0;
   
   bool isDashing = false;
   double lastDashTime = -double.infinity;
@@ -36,11 +48,16 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   double maxEnergy = 100.0;
   int coins = 0;
   
+  // Invincibility after wave completion
+  bool isInvincible = false;
+  double invincibilityTimer = 0.0;
+  static const double invincibilityDuration = 3.0; // 3 seconds of invincibility
+  
   // Input tracking
   final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
   
   Hero({required Vector2 position}) : super(
-    radius: 30.0,
+    radius: 15.0 * CircleRougeGame.scaleFactor,
     paint: Paint()..color = const Color(0xFF4CAF50),
     position: position,
   );
@@ -48,6 +65,15 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   @override
   void update(double dt) {
     super.update(dt);
+    
+    // Update invincibility timer
+    if (isInvincible) {
+      invincibilityTimer -= dt;
+      if (invincibilityTimer <= 0) {
+        isInvincible = false;
+        invincibilityTimer = 0.0;
+      }
+    }
     
     if (isDashing) {
       _updateDash(dt);
@@ -103,7 +129,7 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     final projectile = Projectile(
       startPosition: position.clone(),
       direction: direction,
-      speed: 800.0,
+      speed: 400.0 * CircleRougeGame.scaleFactor,
       damage: 25.0,
       isEnemyProjectile: false,
     );
@@ -135,7 +161,7 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     // Normalize and apply movement
     if (inputDirection.length > 0) {
       inputDirection.normalize();
-      position += inputDirection * moveSpeed * dt * 60; // 60 for frame rate independence
+      position += inputDirection * moveSpeed * speedMultiplier * dt;
     }
   }
   
@@ -146,7 +172,7 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     }
     
     final direction = (dashTarget! - position).normalized();
-    final movement = direction * dashSpeed * dt * 60;
+    final movement = direction * dashSpeed * dt;
     
     if (position.distanceTo(dashTarget!) <= movement.length) {
       position = dashTarget!;
@@ -167,9 +193,21 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     _pressedKeys.clear();
     _pressedKeys.addAll(keysPressed);
     
+    // Handle pause functionality with Esc key
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+      if (gameRef.gameState == GameState.playing) {
+        gameRef.pauseGame();
+        return true;
+      } else if (gameRef.gameState == GameState.paused) {
+        gameRef.resumeGame();
+        return true;
+      }
+    }
+    
     // Handle dash ability
     if (event is KeyDownEvent && 
         (event.logicalKey == LogicalKeyboardKey.space || 
+         event.logicalKey == LogicalKeyboardKey.keyK ||
          event.logicalKey == LogicalKeyboardKey.keyE)) {
       _tryDash();
       return true;
@@ -180,8 +218,9 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   
   void _tryDash() {
     final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
+    final effectiveDashCooldown = dashCooldown * dashCooldownMultiplier;
     
-    if (currentTime - lastDashTime < dashCooldown || energy < 25) {
+    if (currentTime - lastDashTime < effectiveDashCooldown || energy < 25) {
       return; // Dash on cooldown or not enough energy
     }
     
@@ -211,7 +250,7 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
     }
     
     dashDirection.normalize();
-    dashTarget = position + dashDirection * dashDistance * 60;
+    dashTarget = position + dashDirection * dashDistance;
     
     // Constrain dash target to arena
     dashTarget!.x = dashTarget!.x.clamp(radius, CircleRougeGame.arenaWidth - radius);
@@ -223,6 +262,10 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   }
   
   void takeDamage(double damage) {
+    if (isInvincible || isDashing) {
+      return; // No damage while invincible or dashing
+    }
+    
     health = (health - damage).clamp(0, maxHealth);
     
     if (health <= 0) {
@@ -245,10 +288,16 @@ class Hero extends CircleComponent with HasGameRef<CircleRougeGame>, KeyboardHan
   void _updateDashCooldownDisplay() {
     final currentTime = DateTime.now().millisecondsSinceEpoch / 1000.0;
     final timeSinceLastDash = currentTime - lastDashTime;
-    final cooldownPercent = (timeSinceLastDash / dashCooldown).clamp(0.0, 1.0);
+    final effectiveDashCooldown = dashCooldown * dashCooldownMultiplier;
+    final cooldownPercent = (timeSinceLastDash / effectiveDashCooldown).clamp(0.0, 1.0);
     
     if (gameRef.hud.isMounted) {
       gameRef.hud.updateDashCooldown(cooldownPercent);
     }
+  }
+  
+  void activateInvincibility() {
+    isInvincible = true;
+    invincibilityTimer = invincibilityDuration;
   }
 } 
