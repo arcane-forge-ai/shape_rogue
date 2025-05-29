@@ -4,14 +4,13 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/material.dart' hide Hero;
-import 'package:flutter/services.dart';
 
 import '../components/hero.dart';
 import '../components/enemies/enemy_chaser.dart';
 import '../components/enemies/enemy_shooter.dart';
 import '../components/hud.dart';
 import '../components/shop_panel.dart';
+import '../components/sound_manager.dart';
 import '../config/item_config.dart';
 import '../config/wave_config.dart';
 import '../config/hero_config.dart';
@@ -23,6 +22,7 @@ class CircleRougeGame extends FlameGame
   late Hero hero;
   late HudComponent hud;
   late ShopPanel shopPanel;
+  late SpriteComponent backgroundArena; // Reference to background
   
   GameState gameState = GameState.startMenu;
   int currentWave = 1;
@@ -46,12 +46,18 @@ class CircleRougeGame extends FlameGame
   
   String selectedHeroId = 'circle'; // Default hero selection
   
+  // Game over flag to prevent multiple sounds
+  bool gameOverSoundPlayed = false;
+  
   @override
   Future<void> onLoad() async {
     // Load configurations first
     await ItemConfig.instance.loadConfig();
     await WaveConfig.instance.loadConfig();
     await HeroConfig.instance.loadConfig();
+    
+    // Initialize sound manager and preload sounds
+    await SoundManager().preloadSounds();
     
     // Calculate responsive arena size based on a reasonable base size
     // This will be overridden by the main app when it knows screen size
@@ -60,13 +66,15 @@ class CircleRougeGame extends FlameGame
     // Set up camera
     camera.viewfinder.visibleGameSize = Vector2(arenaWidth, arenaHeight);
     
-    // Create arena background
-    final arena = RectangleComponent(
+    // Create arena background with background image
+    final backgroundSprite = await Sprite.load('background1.png');
+    backgroundArena = SpriteComponent(
+      sprite: backgroundSprite,
       size: Vector2(arenaWidth, arenaHeight),
-      paint: Paint()..color = const Color(0xFF2D2D2D),
       position: Vector2.zero(),
-    );
-    add(arena);
+      anchor: Anchor.topLeft,
+    )..size = Vector2(arenaWidth, arenaHeight); // Ensure it fills the entire arena
+    add(backgroundArena);
     
     // Create hero at center (will be added when game starts)
     hero = Hero(position: Vector2(arenaWidth / 2, arenaHeight / 2), heroId: selectedHeroId);
@@ -91,6 +99,7 @@ class CircleRougeGame extends FlameGame
     selectedHeroId = heroId;
     gameState = GameState.playing;
     currentWave = 1;
+    gameOverSoundPlayed = false; // Reset game over sound flag
     
     // Remove all overlays
     overlays.remove('HeroSelection');
@@ -128,6 +137,9 @@ class CircleRougeGame extends FlameGame
   }
   
   void restartGame() {
+    // Reset game over sound flag
+    gameOverSoundPlayed = false;
+    
     // Remove all overlays
     overlays.remove('GameOver');
     overlays.remove('Victory');
@@ -180,12 +192,15 @@ class CircleRougeGame extends FlameGame
     hud.updateEnergy(hero.energy);
     hud.updateCoins(hero.coins);
     
-    // Start first wave
+    // Start first wave (which will start BGM)
     startWave(currentWave);
   }
   
   void showStartMenu() {
     gameState = GameState.startMenu;
+    
+    // Stop battle music
+    SoundManager().stopBGM();
     
     // Remove all overlays and show start menu
     overlays.remove('GameOver');
@@ -251,6 +266,9 @@ class CircleRougeGame extends FlameGame
     }
     currentEnemies.clear();
     
+    // Start battle music for the wave
+    SoundManager().playBattleBGM();
+    
     // Update HUD
     hud.updateWave(waveNumber);
   }
@@ -315,6 +333,12 @@ class CircleRougeGame extends FlameGame
   }
   
   void onWaveComplete() {
+    // Stop battle music when wave ends
+    SoundManager().stopBGM();
+    
+    // Play wave clear sound
+    SoundManager().playClearSound();
+    
     // Clear all remaining enemies at wave end
     final enemiesCopy = List<Component>.from(currentEnemies);
     for (final enemy in enemiesCopy) {
@@ -335,6 +359,8 @@ class CircleRougeGame extends FlameGame
     if (currentWave >= maxWaves) {
       // Game complete - show victory screen
       gameState = GameState.victory;
+      // Play victory sound (BGM already stopped above)
+      SoundManager().playVictorySound();
       overlays.add('Victory');
     } else {
       // Show shop
@@ -357,7 +383,14 @@ class CircleRougeGame extends FlameGame
   }
   
   void onHeroDeath() {
+    if (gameOverSoundPlayed) return; // Prevent multiple fail sounds
+    
     gameState = GameState.gameOver;
+    gameOverSoundPlayed = true;
+    
+    // Stop battle music and play fail sound
+    SoundManager().stopBGM();
+    SoundManager().playFailSound();
     overlays.add('GameOver');
   }
   
@@ -489,6 +522,11 @@ class CircleRougeGame extends FlameGame
     // Update camera if needed
     if (isMounted) {
       camera.viewfinder.visibleGameSize = Vector2(arenaWidth, arenaHeight);
+      
+      // Update background size if it exists
+      if (backgroundArena.isMounted) {
+        backgroundArena.size = Vector2(arenaWidth, arenaHeight);
+      }
     }
   }
   
