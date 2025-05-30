@@ -10,6 +10,7 @@ import '../components/enemies/enemy_chaser.dart';
 import '../components/enemies/enemy_shooter.dart';
 import '../components/hud.dart';
 import '../components/shop_panel.dart';
+import '../components/stats_overlay.dart';
 import '../components/sound_manager.dart';
 import '../config/item_config.dart';
 import '../config/wave_config.dart';
@@ -22,6 +23,7 @@ class CircleRougeGame extends FlameGame
   late Hero hero;
   late HudComponent hud;
   late ShopPanel shopPanel;
+  late StatsOverlay statsOverlay;
   late SpriteComponent backgroundArena; // Reference to background
   
   GameState gameState = GameState.startMenu;
@@ -73,7 +75,10 @@ class CircleRougeGame extends FlameGame
       size: Vector2(arenaWidth, arenaHeight),
       position: Vector2.zero(),
       anchor: Anchor.topLeft,
-    )..size = Vector2(arenaWidth, arenaHeight); // Ensure it fills the entire arena
+      scale: Vector2.all(1.0),
+    );
+    // Force the background to fill exactly the arena size
+    backgroundArena.size = Vector2(arenaWidth, arenaHeight);
     add(backgroundArena);
     
     // Create hero at center (will be added when game starts)
@@ -84,6 +89,9 @@ class CircleRougeGame extends FlameGame
     
     // Create shop panel (will be added when needed)
     shopPanel = ShopPanel();
+    
+    // Create stats overlay (will be added when needed)
+    statsOverlay = StatsOverlay();
     
     // Show start menu overlay
     overlays.add('StartMenu');
@@ -125,6 +133,12 @@ class CircleRougeGame extends FlameGame
     if (!hud.isMounted) {
       add(hud);
     }
+    
+    // Add stats overlay for coin and stats display during gameplay
+    if (!statsOverlay.isMounted) {
+      add(statsOverlay);
+    }
+    statsOverlay.show();
     
     // Reset hero stats
     hero.health = hero.maxHealth;
@@ -189,8 +203,12 @@ class CircleRougeGame extends FlameGame
       add(hud);
     }
     hud.updateHealth(hero.health);
-    hud.updateEnergy(hero.energy);
-    hud.updateCoins(hero.coins);
+    
+    // Add stats overlay for coin and stats display during gameplay
+    if (!statsOverlay.isMounted) {
+      add(statsOverlay);
+    }
+    statsOverlay.show();
     
     // Start first wave (which will start BGM)
     startWave(currentWave);
@@ -218,6 +236,9 @@ class CircleRougeGame extends FlameGame
     }
     if (shopPanel.isMounted) {
       shopPanel.removeFromParent();
+    }
+    if (statsOverlay.isMounted) {
+      statsOverlay.removeFromParent();
     }
     
     // Clear enemies
@@ -259,6 +280,13 @@ class CircleRougeGame extends FlameGame
     if (shopPanel.isMounted) {
       shopPanel.removeFromParent();
     }
+    // Keep stats overlay visible during gameplay - don't remove it
+    
+    // Ensure stats overlay is visible during gameplay
+    if (!statsOverlay.isMounted) {
+      add(statsOverlay);
+    }
+    statsOverlay.show();
     
     // Clear existing enemies
     for (final enemy in currentEnemies) {
@@ -319,7 +347,6 @@ class CircleRougeGame extends FlameGame
     final coins = reward?.coins ?? 10; // Fallback to 10 if config not found
     
     hero.addCoins(coins);
-    hud.updateCoins(hero.coins);
     
     // No longer check for wave completion here - waves are time-based now
   }
@@ -369,6 +396,14 @@ class CircleRougeGame extends FlameGame
         add(shopPanel);
       }
       shopPanel.show();
+      
+      // Ensure stats overlay is on top by adding it after the shop panel
+      if (statsOverlay.isMounted) {
+        statsOverlay.removeFromParent();
+      }
+      add(statsOverlay);
+      statsOverlay.show();
+      
       // Auto refresh shop items
       shopPanel.rollShopItems();
     }
@@ -379,6 +414,7 @@ class CircleRougeGame extends FlameGame
     if (shopPanel.isMounted) {
       shopPanel.removeFromParent();
     }
+    // Keep stats overlay visible during gameplay - don't remove it
     startWave(currentWave + 1);
   }
   
@@ -420,9 +456,11 @@ class CircleRougeGame extends FlameGame
     // Only update HUD during gameplay
     if (gameState == GameState.playing || gameState == GameState.shopping) {
       hud.updateHealth(hero.health);
-      hud.updateEnergy(hero.energy);
-      hud.updateCoins(hero.coins);
-      hud.updateStatus();
+    }
+    
+    // Update stats overlay during gameplay and shopping
+    if ((gameState == GameState.playing || gameState == GameState.shopping) && statsOverlay.isVisible) {
+      statsOverlay.updateStats();
     }
     
     // Handle wave timing during gameplay
@@ -508,16 +546,12 @@ class CircleRougeGame extends FlameGame
   }
   
   void _updateArenaDimensions(double screenWidth, double screenHeight) {
-    // Use a reasonable portion of screen size for arena
-    arenaWidth = screenWidth * 0.9; // 90% of screen width
-    arenaHeight = screenHeight * 0.9; // 90% of screen height
-    
-    // Ensure minimum and maximum sizes
-    arenaWidth = arenaWidth.clamp(400.0, 1200.0);
-    arenaHeight = arenaHeight.clamp(300.0, 900.0);
+    // Use the full screen size for arena (fixed 800x600)
+    arenaWidth = screenWidth;
+    arenaHeight = screenHeight;
     
     // Update safe area margin based on arena size
-    safeAreaMargin = (arenaWidth + arenaHeight) / 40; // Dynamic margin
+    safeAreaMargin = 50.0; // Fixed margin for 800x600
     
     // Update camera if needed
     if (isMounted) {

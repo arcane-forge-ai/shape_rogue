@@ -24,11 +24,12 @@
       "health": 90,
       "ability": {
         "name": "Spike Shot",
-        "description": "Fire a piercing projectile in a straight line that pass through all enemies",
+        "description": "Fire a massive triangle projectile that travels through the entire screen and eliminates any enemy it touches.",
         "cooldown": 5.0,
         "type": "piercing_shot",
-        "damage": 35,
-        "range": 400
+        "damage": 999,
+        "range": 1200,
+        "projectile_size": 80
       },
       "color": "0xFFFF9800"
     },
@@ -40,11 +41,11 @@
       "health": 120,
       "ability": {
         "name": "Shield Bash",
-        "description": "Stuns all enemies in a 250-unit radius around your impact point for 1.5 s.",
+        "description": "Stuns all enemies on the entire map for 1.5 seconds.",
         "cooldown": 7.0,
         "type": "area_stun",
         "damage": 25,
-        "range": 250,
+        "range": 9999,
         "stun_duration": 1.5
       },
       "color": "0xFF2196F3"

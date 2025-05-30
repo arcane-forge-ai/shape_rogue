@@ -6,52 +6,124 @@ import '../game/circle_rouge_game.dart';
 class HudComponent extends Component with HasGameRef<CircleRougeGame> {
   late RectangleComponent healthBarBg;
   late RectangleComponent healthBarFill;
-  late RectangleComponent energyBarBg;
-  late RectangleComponent energyBarFill;
-  late TextComponent coinCounter;
   late TextComponent waveIndicator;
   late TextComponent healthText;
-  late TextComponent energyText;
-  late RectangleComponent dashCooldownBg;
-  late RectangleComponent dashCooldownFill;
-  late TextComponent dashCooldownText;
+  late RectangleComponent abilityCooldownBg;
+  late RectangleComponent abilityCooldownFill;
+  late TextComponent abilityCooldownText;
   late TextComponent waveTimerText;
-  late RectangleComponent statusPanel;
-  late TextComponent statusText;
+  late RectangleComponent hudBackground;
+  late RectangleComponent centerPanel;
   
-  static double get barWidth => 250.0 * CircleRougeGame.scaleFactor;
-  static double get healthBarHeight => 20.0 * CircleRougeGame.scaleFactor;
-  static double get energyBarHeight => 15.0 * CircleRougeGame.scaleFactor;
-  static double get margin => 8.0 * CircleRougeGame.scaleFactor;
+  static double get barWidth => 280.0 * CircleRougeGame.scaleFactor;
+  static double get healthBarHeight => 24.0 * CircleRougeGame.scaleFactor;
+  static double get margin => 12.0 * CircleRougeGame.scaleFactor;
   
   @override
   Future<void> onLoad() async {
     super.onLoad();
     
-    // Health bar background
+    // HUD background panel with enhanced gradient
+    hudBackground = RectangleComponent(
+      size: Vector2(barWidth + 30, 90 * CircleRougeGame.scaleFactor),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2D2D4A),
+            Color(0xFF1E1E3A),
+            Color(0xFF151528),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, barWidth + 30, 90 * CircleRougeGame.scaleFactor)),
+      position: Vector2(margin - 15, margin - 10),
+    );
+    add(hudBackground);
+    
+    // Enhanced border with glow effect
+    final hudBorder = RectangleComponent(
+      size: Vector2(barWidth + 30, 90 * CircleRougeGame.scaleFactor),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.6),
+      position: Vector2(margin - 15, margin - 10),
+    );
+    add(hudBorder);
+    
+    // Outer glow effect for HUD
+    final hudOuterGlow = RectangleComponent(
+      size: Vector2(barWidth + 40, 100 * CircleRougeGame.scaleFactor),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.1)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15),
+      position: Vector2(margin - 20, margin - 15),
+    );
+    add(hudOuterGlow);
+    
+    // Health bar background with enhanced styling
     healthBarBg = RectangleComponent(
       size: Vector2(barWidth, healthBarHeight),
-      paint: Paint()..color = const Color(0xFF424242),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF1A1A1A),
+            Color(0xFF2A2A2A),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, barWidth, healthBarHeight)),
       position: Vector2(margin, margin),
     );
     add(healthBarBg);
     
-    // Health bar fill
+    // Health bar border
+    final healthBarBorder = RectangleComponent(
+      size: Vector2(barWidth, healthBarHeight),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.4),
+      position: Vector2(margin, margin),
+    );
+    add(healthBarBorder);
+    
+    // Health bar fill with enhanced gradient effect
     healthBarFill = RectangleComponent(
       size: Vector2(barWidth, healthBarHeight),
-      paint: Paint()..color = const Color(0xFF4CAF50),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF4CAF50),
+            Color(0xFF66BB6A),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, barWidth, healthBarHeight)),
       position: Vector2(margin, margin),
     );
     add(healthBarFill);
     
-    // Health text
+    // Health text with enhanced styling
     healthText = TextComponent(
-      text: '100/100',
+      text: '❤️ 100/100 HP',
       textRenderer: TextPaint(
         style: TextStyle(
           color: Colors.white,
-          fontSize: 14.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
+          fontSize: 16.0 * CircleRougeGame.scaleFactor,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+          shadows: const [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+            Shadow(
+              color: Color(0xFF4CAF50),
+              blurRadius: 2,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.center,
@@ -59,148 +131,180 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     );
     add(healthText);
     
-    // Energy bar background
-    energyBarBg = RectangleComponent(
-      size: Vector2(barWidth, energyBarHeight),
-      paint: Paint()..color = const Color(0xFF424242),
-      position: Vector2(margin, margin + healthBarHeight + 5 * CircleRougeGame.scaleFactor),
+    // Ability cooldown background with enhanced styling
+    final abilityCooldownWidth = 140.0 * CircleRougeGame.scaleFactor;
+    final abilityCooldownHeight = 18.0 * CircleRougeGame.scaleFactor;
+    abilityCooldownBg = RectangleComponent(
+      size: Vector2(abilityCooldownWidth, abilityCooldownHeight),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF1A1A1A),
+            Color(0xFF2A2A2A),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, abilityCooldownWidth, abilityCooldownHeight)),
+      position: Vector2(margin, margin + healthBarHeight + 15 * CircleRougeGame.scaleFactor),
     );
-    add(energyBarBg);
+    add(abilityCooldownBg);
     
-    // Energy bar fill
-    energyBarFill = RectangleComponent(
-      size: Vector2(barWidth, energyBarHeight),
-      paint: Paint()..color = const Color(0xFF2196F3),
-      position: Vector2(margin, margin + healthBarHeight + 5 * CircleRougeGame.scaleFactor),
+    // Ability cooldown border
+    final abilityCooldownBorder = RectangleComponent(
+      size: Vector2(abilityCooldownWidth, abilityCooldownHeight),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.3),
+      position: Vector2(margin, margin + healthBarHeight + 15 * CircleRougeGame.scaleFactor),
     );
-    add(energyBarFill);
+    add(abilityCooldownBorder);
     
-    // Energy text
-    energyText = TextComponent(
-      text: '100/100',
+    // Ability cooldown fill with enhanced gradient
+    abilityCooldownFill = RectangleComponent(
+      size: Vector2(abilityCooldownWidth, abilityCooldownHeight),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF4CAF50),
+            Color(0xFF66BB6A),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, abilityCooldownWidth, abilityCooldownHeight)),
+      position: Vector2(margin, margin + healthBarHeight + 15 * CircleRougeGame.scaleFactor),
+    );
+    add(abilityCooldownFill);
+    
+    // Ability cooldown text with enhanced styling
+    abilityCooldownText = TextComponent(
+      text: '🔥 Ability Ready',
       textRenderer: TextPaint(
         style: TextStyle(
           color: Colors.white,
           fontSize: 12.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      anchor: Anchor.center,
-      position: Vector2(margin + barWidth / 2, margin + healthBarHeight + 5 * CircleRougeGame.scaleFactor + energyBarHeight / 2),
-    );
-    add(energyText);
-    
-    // Dash cooldown background
-    final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
-    final dashCooldownHeight = 12.0 * CircleRougeGame.scaleFactor;
-    dashCooldownBg = RectangleComponent(
-      size: Vector2(dashCooldownWidth, dashCooldownHeight),
-      paint: Paint()..color = const Color(0xFF424242),
-      position: Vector2(margin, margin + healthBarHeight + energyBarHeight + 15 * CircleRougeGame.scaleFactor),
-    );
-    add(dashCooldownBg);
-    
-    // Dash cooldown fill
-    dashCooldownFill = RectangleComponent(
-      size: Vector2(dashCooldownWidth, dashCooldownHeight),
-      paint: Paint()..color = const Color(0xFFFFEB3B),
-      position: Vector2(margin, margin + healthBarHeight + energyBarHeight + 15 * CircleRougeGame.scaleFactor),
-    );
-    add(dashCooldownFill);
-    
-    // Dash cooldown text
-    dashCooldownText = TextComponent(
-      text: 'Dash Ready',
-      textRenderer: TextPaint(
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 10.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+          shadows: const [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 3,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.centerLeft,
-      position: Vector2(margin + dashCooldownWidth + 5 * CircleRougeGame.scaleFactor, 
-                       margin + healthBarHeight + energyBarHeight + 15 * CircleRougeGame.scaleFactor + dashCooldownHeight / 2),
+      position: Vector2(margin + abilityCooldownWidth + 10 * CircleRougeGame.scaleFactor, 
+                       margin + healthBarHeight + 15 * CircleRougeGame.scaleFactor + abilityCooldownHeight / 2),
     );
-    add(dashCooldownText);
+    add(abilityCooldownText);
     
-    // Coin counter
-    coinCounter = TextComponent(
-      text: 'Coins: 0',
-      textRenderer: TextPaint(
-        style: TextStyle(
-          color: const Color(0xFFFFEB3B),
-          fontSize: 20.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
-        ),
+    // Center panel for wave info with enhanced gradient
+    centerPanel = RectangleComponent(
+      size: Vector2(220 * CircleRougeGame.scaleFactor, 80 * CircleRougeGame.scaleFactor),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF2D2D4A),
+            Color(0xFF1E1E3A),
+            Color(0xFF151528),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, 220 * CircleRougeGame.scaleFactor, 80 * CircleRougeGame.scaleFactor)),
+      position: Vector2(
+        (CircleRougeGame.arenaWidth - 220 * CircleRougeGame.scaleFactor) / 2,
+        margin - 10,
       ),
-      anchor: Anchor.topRight,
-      position: Vector2(CircleRougeGame.arenaWidth - margin, margin),
     );
-    add(coinCounter);
+    add(centerPanel);
     
-    // Wave indicator
+    // Center panel enhanced border with glow
+    final centerBorder = RectangleComponent(
+      size: Vector2(220 * CircleRougeGame.scaleFactor, 80 * CircleRougeGame.scaleFactor),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.6),
+      position: Vector2(
+        (CircleRougeGame.arenaWidth - 220 * CircleRougeGame.scaleFactor) / 2,
+        margin - 10,
+      ),
+    );
+    add(centerBorder);
+    
+    // Center panel outer glow
+    final centerOuterGlow = RectangleComponent(
+      size: Vector2(230 * CircleRougeGame.scaleFactor, 90 * CircleRougeGame.scaleFactor),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.1)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+      position: Vector2(
+        (CircleRougeGame.arenaWidth - 230 * CircleRougeGame.scaleFactor) / 2,
+        margin - 15,
+      ),
+    );
+    add(centerOuterGlow);
+    
+    // Wave indicator with enhanced styling
     waveIndicator = TextComponent(
-      text: 'Wave 1',
+      text: '🌊 WAVE 1',
       textRenderer: TextPaint(
         style: TextStyle(
-          color: Colors.white,
-          fontSize: 24.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
+          color: const Color(0xFF4A9EFF),
+          fontSize: 22.0 * CircleRougeGame.scaleFactor,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2,
+          shadows: const [
+            Shadow(
+              color: Color(0xFF4A9EFF),
+              blurRadius: 10,
+            ),
+            Shadow(
+              color: Color(0xFF9C27B0),
+              blurRadius: 6,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(CircleRougeGame.arenaWidth / 2, margin),
+      position: Vector2(CircleRougeGame.arenaWidth / 2, margin + 8),
     );
     add(waveIndicator);
     
-    // Wave timer
+    // Wave timer with enhanced styling
     waveTimerText = TextComponent(
-      text: 'Time: 30s',
+      text: '⏱️ TIME: 30s',
       textRenderer: TextPaint(
         style: TextStyle(
           color: Colors.white,
           fontSize: 16.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+          shadows: const [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+            Shadow(
+              color: Color(0xFF4A9EFF),
+              blurRadius: 2,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(CircleRougeGame.arenaWidth / 2, margin + 30 * CircleRougeGame.scaleFactor),
+      position: Vector2(CircleRougeGame.arenaWidth / 2, margin + 40 * CircleRougeGame.scaleFactor),
     );
     add(waveTimerText);
-    
-    // Status panel
-    final statusPanelWidth = 120.0 * CircleRougeGame.scaleFactor;
-    final statusPanelHeight = 80.0 * CircleRougeGame.scaleFactor;
-    statusPanel = RectangleComponent(
-      size: Vector2(statusPanelWidth, statusPanelHeight),
-      paint: Paint()..color = const Color(0xFF424242),
-      position: Vector2(CircleRougeGame.arenaWidth - margin - statusPanelWidth, margin + 25 * CircleRougeGame.scaleFactor), // Below coin counter
-    );
-    add(statusPanel);
-    
-    // Status text
-    statusText = TextComponent(
-      text: 'Status: Ready',
-      textRenderer: TextPaint(
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 10.0 * CircleRougeGame.scaleFactor,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      anchor: Anchor.topLeft,
-      position: Vector2(CircleRougeGame.arenaWidth - margin - statusPanelWidth + 3 * CircleRougeGame.scaleFactor, 
-                       margin + 28 * CircleRougeGame.scaleFactor), // Below coin counter
-    );
-    add(statusText);
   }
   
   void updateHealth(double health) {
     final maxHealth = gameRef.hero.maxHealth;
     final healthPercent = health / maxHealth;
     healthBarFill.size.x = barWidth * healthPercent;
-    healthText.text = '${health.round()}/${maxHealth.round()}';
+    healthText.text = '❤️ ${health.round()}/${maxHealth.round()} HP';
     
     // Change color based on health
     if (healthPercent > 0.6) {
@@ -212,86 +316,82 @@ class HudComponent extends Component with HasGameRef<CircleRougeGame> {
     }
   }
   
-  void updateEnergy(double energy) {
-    final maxEnergy = gameRef.hero.maxEnergy;
-    final energyPercent = energy / maxEnergy;
-    energyBarFill.size.x = barWidth * energyPercent;
-    energyText.text = '${energy.round()}/${maxEnergy.round()}';
-  }
-  
   void updateDashCooldown(double cooldownPercent) {
-    final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
-    dashCooldownFill.size.x = dashCooldownWidth * cooldownPercent;
+    final abilityCooldownWidth = 140.0 * CircleRougeGame.scaleFactor;
+    abilityCooldownFill.size.x = abilityCooldownWidth * cooldownPercent;
     if (cooldownPercent >= 1.0) {
-      dashCooldownText.text = 'Ability Ready';
-      dashCooldownFill.paint.color = const Color(0xFF4CAF50);
+      abilityCooldownText.text = '🔥 Ability Ready';
+      abilityCooldownFill.paint.color = const Color(0xFF4CAF50);
     } else {
-      dashCooldownFill.paint.color = const Color(0xFFFF9800);
+      abilityCooldownFill.paint.color = const Color(0xFFFF9800);
     }
   }
   
-  // New method to update cooldown with seconds remaining
+  // Enhanced method to update cooldown with seconds remaining
   void updateAbilityCooldown(double cooldownPercent, double remainingSeconds) {
-    final dashCooldownWidth = 120.0 * CircleRougeGame.scaleFactor;
-    dashCooldownFill.size.x = dashCooldownWidth * cooldownPercent;
+    final abilityCooldownWidth = 140.0 * CircleRougeGame.scaleFactor;
+    abilityCooldownFill.size.x = abilityCooldownWidth * cooldownPercent;
     if (cooldownPercent >= 1.0) {
-      dashCooldownText.text = 'Ability Ready';
-      dashCooldownFill.paint.color = const Color(0xFF4CAF50);
+      abilityCooldownText.text = '🔥 Ability Ready';
+      abilityCooldownFill.paint.color = const Color(0xFF4CAF50);
     } else {
       final seconds = remainingSeconds.ceil();
-      dashCooldownText.text = 'Cooldown: ${seconds}s';
-      dashCooldownFill.paint.color = const Color(0xFFFF9800);
+      abilityCooldownText.text = '⏳ Cooldown: ${seconds}s';
+      abilityCooldownFill.paint.color = const Color(0xFFFF9800);
     }
   }
   
   void updateWaveTimer(double remainingTime) {
     final seconds = remainingTime.ceil();
-    waveTimerText.text = 'Time: ${seconds}s';
+    waveTimerText.text = '⏱️ TIME: ${seconds}s';
     
     // Change color based on remaining time
     if (remainingTime > 10) {
       waveTimerText.textRenderer = TextPaint(
         style: TextStyle(
           color: Colors.white,
-          fontSize: 16.0 * CircleRougeGame.scaleFactor,
+          fontSize: 14.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
+          shadows: const [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 2,
+            ),
+          ],
         ),
       );
     } else if (remainingTime > 5) {
       waveTimerText.textRenderer = TextPaint(
         style: TextStyle(
-          color: Colors.orange,
-          fontSize: 16.0 * CircleRougeGame.scaleFactor,
+          color: const Color(0xFFFF9800),
+          fontSize: 14.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
+          shadows: const [
+            Shadow(
+              color: Color(0xFFFF9800),
+              blurRadius: 4,
+            ),
+          ],
         ),
       );
     } else {
       waveTimerText.textRenderer = TextPaint(
         style: TextStyle(
-          color: Colors.red,
-          fontSize: 16.0 * CircleRougeGame.scaleFactor,
+          color: const Color(0xFFF44336),
+          fontSize: 14.0 * CircleRougeGame.scaleFactor,
           fontWeight: FontWeight.bold,
+          shadows: const [
+            Shadow(
+              color: Color(0xFFF44336),
+              blurRadius: 6,
+            ),
+          ],
         ),
       );
     }
   }
   
-  void updateCoins(int coins) {
-    coinCounter.text = 'Coins: $coins';
-  }
-  
   void updateWave(int wave) {
-    waveIndicator.text = 'Wave $wave';
-  }
-  
-  void updateStatus() {
-    final hero = gameRef.hero;
-    final statusInfo = '''Max HP: ${hero.maxHealth.round()}
-Max Energy: ${hero.maxEnergy.round()}
-Attack Speed: ${(hero.attackSpeedMultiplier * 100).round()}%
-Speed: ${(hero.speedMultiplier * 100).round()}%
-Coins: ${hero.coins}''';
-    
-    statusText.text = statusInfo;
+    waveIndicator.text = '🌊 WAVE $wave';
   }
 } 

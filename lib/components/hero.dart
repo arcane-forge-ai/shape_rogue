@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,9 +9,9 @@ import '../config/hero_config.dart';
 import 'abilities/hex_field.dart';
 import 'enemies/enemy_chaser.dart';
 import 'enemies/enemy_shooter.dart';
-import 'enemies/piercing_projectile.dart';
 import 'enemies/projectile.dart';
-import 'shapes/custom_shapes.dart';
+import 'enemies/shape_projectile.dart';
+import 'enemies/triangle_projectile.dart';
 import 'sound_manager.dart';
 
 class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardHandler {
@@ -101,22 +100,29 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
     super.render(canvas);
     
     final shapeSize = size.x;
+    final center = Offset(size.x / 2, size.y / 2);
+    
+    // Add glow effect
+    final glowPaint = Paint()
+      ..color = heroData.color.withOpacity(0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
     
     switch (heroData.shape) {
       case 'circle':
-        canvas.drawCircle(
-          Offset(size.x / 2, size.y / 2),
-          heroRadius,
-          heroPaint,
-        );
+        // Draw glow
+        canvas.drawCircle(center, heroRadius + 8, glowPaint);
+        // Draw main shape
+        canvas.drawCircle(center, heroRadius, heroPaint);
         break;
       case 'triangle':
-        _drawTriangle(canvas, shapeSize);
+        _drawTriangle(canvas, shapeSize, glowPaint, 8);
+        _drawTriangle(canvas, shapeSize, heroPaint, 0);
         break;
       case 'square':
+        _drawSquare(canvas, center, glowPaint, 8);
         canvas.drawRect(
           Rect.fromCenter(
-            center: Offset(size.x / 2, size.y / 2),
+            center: center,
             width: shapeSize * 0.8,
             height: shapeSize * 0.8,
           ),
@@ -124,44 +130,55 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
         );
         break;
       case 'pentagon':
-        _drawPentagon(canvas, shapeSize);
+        _drawPentagon(canvas, shapeSize, glowPaint, 8);
+        _drawPentagon(canvas, shapeSize, heroPaint, 0);
         break;
       case 'hexagon':
-        _drawHexagon(canvas, shapeSize);
+        _drawHexagon(canvas, shapeSize, glowPaint, 8);
+        _drawHexagon(canvas, shapeSize, heroPaint, 0);
         break;
       default:
-        canvas.drawCircle(
-          Offset(size.x / 2, size.y / 2),
-          heroRadius,
-          heroPaint,
-        );
+        // Draw glow
+        canvas.drawCircle(center, heroRadius + 8, glowPaint);
+        // Draw main shape
+        canvas.drawCircle(center, heroRadius, heroPaint);
     }
   }
   
-  void _drawTriangle(Canvas canvas, double shapeSize) {
+  void _drawTriangle(Canvas canvas, double shapeSize, Paint paint, double glowRadius) {
     final path = Path();
     final center = Offset(size.x / 2, size.y / 2);
-    final halfSize = heroRadius;
+    final radius = (shapeSize * 0.4) + glowRadius;
     
-    path.moveTo(center.dx, center.dy - halfSize); // Top point
-    path.lineTo(center.dx - halfSize * cos(pi / 6), center.dy + halfSize / 2); // Bottom left
-    path.lineTo(center.dx + halfSize * cos(pi / 6), center.dy + halfSize / 2); // Bottom right
+    path.moveTo(center.dx, center.dy - radius);
+    path.lineTo(center.dx - radius * cos(pi / 6), center.dy + radius / 2);
+    path.lineTo(center.dx + radius * cos(pi / 6), center.dy + radius / 2);
     path.close();
     
-    canvas.drawPath(path, heroPaint);
+    canvas.drawPath(path, paint);
   }
   
-  void _drawPentagon(Canvas canvas, double shapeSize) {
+  void _drawSquare(Canvas canvas, Offset center, Paint paint, double glowRadius) {
+    final size = (this.size.x * 0.8) + (glowRadius * 2);
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: center,
+        width: size,
+        height: size,
+      ),
+      paint,
+    );
+  }
+  
+  void _drawPentagon(Canvas canvas, double shapeSize, Paint paint, double glowRadius) {
     final path = Path();
     final center = Offset(size.x / 2, size.y / 2);
-    final radius = heroRadius;
-    final angleStep = 2 * pi / 5;
+    final radius = (shapeSize * 0.4) + glowRadius;
     
     for (int i = 0; i < 5; i++) {
-      final angle = -pi / 2 + i * angleStep;
-      final x = center.dx + radius * cos(angle);
-      final y = center.dy + radius * sin(angle);
-      
+      final angle = -90 + (i * 72); // Pentagon angles
+      final x = center.dx + radius * cos(angle * 3.14159 / 180);
+      final y = center.dy + radius * sin(angle * 3.14159 / 180);
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -170,20 +187,18 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
     }
     path.close();
     
-    canvas.drawPath(path, heroPaint);
+    canvas.drawPath(path, paint);
   }
   
-  void _drawHexagon(Canvas canvas, double shapeSize) {
+  void _drawHexagon(Canvas canvas, double shapeSize, Paint paint, double glowRadius) {
     final path = Path();
     final center = Offset(size.x / 2, size.y / 2);
-    final radius = heroRadius;
-    final angleStep = 2 * pi / 6;
+    final radius = (shapeSize * 0.4) + glowRadius;
     
     for (int i = 0; i < 6; i++) {
-      final angle = -pi / 2 + i * angleStep;
-      final x = center.dx + radius * cos(angle);
-      final y = center.dy + radius * sin(angle);
-      
+      final angle = -90 + (i * 60); // Hexagon angles
+      final x = center.dx + radius * cos(angle * 3.14159 / 180);
+      final y = center.dy + radius * sin(angle * 3.14159 / 180);
       if (i == 0) {
         path.moveTo(x, y);
       } else {
@@ -192,10 +207,11 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
     }
     path.close();
     
-    canvas.drawPath(path, heroPaint);
+    canvas.drawPath(path, paint);
   }
   
   // Collision detection method for other components to use
+  @override
   bool containsPoint(Vector2 point) {
     final distance = position.distanceTo(point);
     return distance <= heroRadius;
@@ -268,13 +284,14 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
   }
   
   void _fireProjectile(Vector2 direction) {
-    final projectile = Projectile(
+    final projectile = ShapeProjectile(
       startPosition: position.clone(),
       direction: direction,
       speed: 400.0 * CircleRougeGame.scaleFactor,
       damage: 25.0,
       isEnemyProjectile: false,
-      heroColor: heroData.color,
+      projectileColor: heroData.color,
+      shape: heroData.shape,
     );
     
     gameRef.add(projectile);
@@ -463,13 +480,14 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
       direction = (nearestEnemy.position - position).normalized();
     }
     
-    // Create piercing projectile
-    final projectile = PiercingProjectile(
+    // Create massive triangle projectile
+    final projectile = TriangleProjectile(
       startPosition: position.clone(),
       direction: direction,
       speed: 500.0 * CircleRougeGame.scaleFactor,
       damage: heroData.ability.damage,
       range: heroData.ability.range * CircleRougeGame.scaleFactor,
+      projectileSize: heroData.ability.projectileSize ?? 60.0, // Default size if not specified
       heroColor: heroData.color,
     );
     
@@ -480,27 +498,23 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
     // Play sound effect for square hero
     SoundManager().playHeroAbilitySound(heroData.shape);
     
-    // Stun all enemies within range
-    final scaledRange = heroData.ability.range * CircleRougeGame.scaleFactor;
-    final stunDuration = heroData.ability.duration ?? 3.0;
+    // Stun ALL enemies on the map (no range limitation)
+    final stunDuration = heroData.ability.stunDuration ?? 3.0;
     
     for (final enemy in gameRef.currentEnemies) {
       if (enemy is PositionComponent) {
-        final distance = position.distanceTo(enemy.position);
-        if (distance <= scaledRange) {
-          // Apply stun effect to different enemy types
-          if (enemy is EnemyChaser) {
-            enemy.stun(stunDuration);
-          } else if (enemy is EnemyShooter) {
-            enemy.stun(stunDuration);
-          }
+        // Apply stun effect to different enemy types without range check
+        if (enemy is EnemyChaser) {
+          enemy.stun(stunDuration);
+        } else if (enemy is EnemyShooter) {
+          enemy.stun(stunDuration);
         }
       }
     }
     
     // Visual feedback - create a brief shockwave effect
     // This could be enhanced with a proper visual component
-    print('Shield Bash! Stunned enemies for ${stunDuration}s');
+    print('Shield Bash! Stunned all enemies for ${stunDuration}s');
   }
   
   void _executeRadialBurst() {

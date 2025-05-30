@@ -13,6 +13,7 @@ class HeroAbility {
   final int? projectileCount;
   final double? duration;
   final double? slowPercent;
+  final double? projectileSize;
   
   HeroAbility({
     required this.name,
@@ -25,6 +26,7 @@ class HeroAbility {
     this.projectileCount,
     this.duration,
     this.slowPercent,
+    this.projectileSize,
   });
   
   factory HeroAbility.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class HeroAbility {
       projectileCount: json['projectile_count'],
       duration: json['duration']?.toDouble(),
       slowPercent: json['slow_percent']?.toDouble(),
+      projectileSize: json['projectile_size']?.toDouble(),
     );
   }
 }
@@ -115,6 +118,7 @@ class HeroConfig {
             type: 'dash_damage',
             damage: 40.0,
             range: 200.0,
+            projectileSize: 60.0,
           ),
           color: const Color(0xFF4CAF50),
         ),

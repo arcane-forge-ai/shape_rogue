@@ -40,18 +40,21 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
   late TextComponent rollButtonText;
   late TextComponent titleText;
   late TextComponent instructionText;
+  late RectangleComponent backgroundGradient;
+  late RectangleComponent headerPanel;
+  late RectangleComponent footerPanel;
   
   bool isVisible = false;
   
-  static const double panelWidth = 600.0;
-  static const double panelHeight = 450.0;
-  static const double slotWidth = 150.0;
-  static const double slotHeight = 200.0;
-  static const double slotSpacing = 40.0;
+  static const double panelWidth = 650.0;
+  static const double panelHeight = 500.0;
+  static const double slotWidth = 160.0;
+  static const double slotHeight = 250.0;
+  static const double slotSpacing = 45.0;
   
   ShopPanel() : super(
     size: Vector2(panelWidth, panelHeight),
-    paint: Paint()..color = const Color(0xDD000000), // More opaque black
+    paint: Paint()..color = Colors.transparent,
     position: Vector2(
       (CircleRougeGame.arenaWidth - panelWidth) / 2,
       (CircleRougeGame.arenaHeight - panelHeight) / 2,
@@ -62,101 +65,257 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
   Future<void> onLoad() async {
     super.onLoad();
     
-    // Add border
+    // Background with enhanced gradient effect
+    backgroundGradient = RectangleComponent(
+      size: Vector2(panelWidth, panelHeight),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF2D2D4A),
+            Color(0xFF1E1E3A),
+            Color(0xFF151528),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, panelWidth, panelHeight)),
+      position: Vector2.zero(),
+    );
+    add(backgroundGradient);
+    
+    // Main border with enhanced glow effect
     final border = RectangleComponent(
       size: Vector2(panelWidth, panelHeight),
       paint: Paint()
         ..color = Colors.transparent
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
-        ..color = Colors.white,
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.6),
       position: Vector2.zero(),
     );
     add(border);
     
-    // Title
+    // Outer glow effect
+    final outerGlow = RectangleComponent(
+      size: Vector2(panelWidth + 10, panelHeight + 10),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 8
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.1)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15),
+      position: Vector2(-5, -5),
+    );
+    add(outerGlow);
+    
+    // Header panel with gradient
+    headerPanel = RectangleComponent(
+      size: Vector2(panelWidth - 20, 90),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF4A9EFF),
+            Color(0xFF9C27B0),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, panelWidth - 20, 90))
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.15),
+      position: Vector2(10, 10),
+    );
+    add(headerPanel);
+    
+    // Header border with glow
+    final headerBorder = RectangleComponent(
+      size: Vector2(panelWidth - 20, 90),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.6),
+      position: Vector2(10, 10),
+    );
+    add(headerBorder);
+    
+    // Title with enhanced styling and shader mask effect
     titleText = TextComponent(
-      text: 'Shop - Choose Your Upgrades',
+      text: '🛍️ MYSTICAL SHOP',
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
+          color: Colors.white, // This will be overridden by the gradient
+          fontSize: 32,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2.5,
+          shadows: [
+            Shadow(
+              color: Color(0xFF4A9EFF),
+              blurRadius: 12,
+            ),
+            Shadow(
+              color: Color(0xFF9C27B0),
+              blurRadius: 8,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(panelWidth / 2, 20),
+      position: Vector2(panelWidth / 2, 30),
     );
     add(titleText);
     
-    // Instructions
-    final instructionText = TextComponent(
-      text: 'Click Roll to get new items, Click Continue to proceed to next wave',
+    // Instructions with enhanced styling
+    instructionText = TextComponent(
+      text: '✨ Enhance your hero with powerful upgrades ✨',
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Colors.grey,
-          fontSize: 12,
+          color: Color(0xFFE0E0E0),
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1,
+          shadows: [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(panelWidth / 2, 50),
+      position: Vector2(panelWidth / 2, 70),
     );
     add(instructionText);
     
-    // Create item slots
+    // Create item slots with better positioning
     itemSlots = [];
+    final slotsStartX = (panelWidth - (3 * slotWidth + 2 * slotSpacing)) / 2;
     for (int i = 0; i < 3; i++) {
       final slot = ShopSlot(
         position: Vector2(
-          (panelWidth - (3 * slotWidth + 2 * slotSpacing)) / 2 + i * (slotWidth + slotSpacing),
-          80,
+          slotsStartX + i * (slotWidth + slotSpacing),
+          110,
         ),
       );
       itemSlots.add(slot);
       add(slot);
     }
     
-    // Roll button
+    // Footer panel with gradient background
+    footerPanel = RectangleComponent(
+      size: Vector2(panelWidth - 20, 70),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF2D2D4A),
+            Color(0xFF1E1E3A),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, panelWidth - 20, 70))
+        ..color = const Color(0xFF2D2D4A).withOpacity(0.6),
+      position: Vector2(10, panelHeight - 80),
+    );
+    add(footerPanel);
+    
+    // Footer border
+    final footerBorder = RectangleComponent(
+      size: Vector2(panelWidth - 20, 70),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.3),
+      position: Vector2(10, panelHeight - 80),
+    );
+    add(footerBorder);
+    
+    // Roll button with enhanced gradient styling
     rollButton = RectangleComponent(
-      size: Vector2(100, 35),
-      paint: Paint()..color = const Color(0xFF2196F3),
-      position: Vector2((panelWidth - 100) / 2 - 60, panelHeight - 60),
+      size: Vector2(140, 45),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF2196F3),
+            Color(0xFF1976D2),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, 140, 45)),
+      position: Vector2((panelWidth - 140) / 2 - 90, panelHeight - 65),
     );
     add(rollButton);
     
+    // Roll button glow effect
+    final rollButtonGlow = RectangleComponent(
+      size: Vector2(140, 45),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF2196F3).withOpacity(0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      position: Vector2((panelWidth - 140) / 2 - 90, panelHeight - 65),
+    );
+    add(rollButtonGlow);
+    
     rollButtonText = TextComponent(
-      text: 'Roll (10)',
+      text: 'ROLL (10)',
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          shadows: [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.center,
-      position: Vector2(50, 17.5),
+      position: Vector2(70, 22.5),
     );
     rollButton.add(rollButtonText);
     
-    // Continue button
+    // Continue button with enhanced gradient styling
     final continueButton = RectangleComponent(
-      size: Vector2(100, 35),
-      paint: Paint()..color = const Color(0xFF4CAF50),
-      position: Vector2((panelWidth - 100) / 2 + 60, panelHeight - 60),
+      size: Vector2(140, 45),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF4CAF50),
+            Color(0xFF388E3C),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, 140, 45)),
+      position: Vector2((panelWidth - 140) / 2 + 90, panelHeight - 65),
     );
     add(continueButton);
     
+    // Continue button glow effect
+    final continueButtonGlow = RectangleComponent(
+      size: Vector2(140, 45),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF4CAF50).withOpacity(0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      position: Vector2((panelWidth - 140) / 2 + 90, panelHeight - 65),
+    );
+    add(continueButtonGlow);
+    
     final continueButtonText = TextComponent(
-      text: 'Continue',
+      text: 'CONTINUE',
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          shadows: [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.center,
-      position: Vector2(50, 17.5),
+      position: Vector2(70, 22.5),
     );
     continueButton.add(continueButtonText);
     
@@ -191,8 +350,8 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
     final rollButtonRect = Rect.fromLTWH(
       rollButton.position.x,
       rollButton.position.y,
-      rollButton.size.x,
-      rollButton.size.y,
+      140,
+      45,
     );
     
     if (rollButtonRect.contains(Offset(localPoint.x, localPoint.y))) {
@@ -201,12 +360,12 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
     }
     
     // Check if continue button was tapped
-    final continueButtonPosition = Vector2((panelWidth - 100) / 2 + 60, panelHeight - 60);
+    final continueButtonPosition = Vector2((panelWidth - 140) / 2 + 90, panelHeight - 65);
     final continueButtonRect = Rect.fromLTWH(
       continueButtonPosition.x,
       continueButtonPosition.y,
-      100,
-      35,
+      140,
+      45,
     );
     
     if (continueButtonRect.contains(Offset(localPoint.x, localPoint.y))) {
@@ -230,7 +389,6 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
     // Spend coins for rolling (if not free)
     if (rollCost > 0) {
       gameRef.hero.spendCoins(rollCost);
-      gameRef.hud.updateCoins(gameRef.hero.coins);
     }
     
     final availableItems = _getAvailableItems();
@@ -244,7 +402,7 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
     }
     
     // Update roll button text after rolling (now items are available, so cost is 10)
-    rollButtonText.text = 'Roll (10)';
+    rollButtonText.text = 'ROLL (10)';
   }
   
   List<ShopItem> _getAvailableItems() {
@@ -291,13 +449,10 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
   }
   
   void onItemPurchased() {
-    // Update HUD after purchase
-    gameRef.hud.updateCoins(gameRef.hero.coins);
-    
     // Update roll button text based on remaining items
     final allItemsSold = itemSlots.every((slot) => slot.currentItem == null);
     final rollCost = allItemsSold ? 0 : 10;
-    rollButtonText.text = rollCost == 0 ? 'Roll (Free)' : 'Roll ($rollCost)';
+    rollButtonText.text = rollCost == 0 ? 'ROLL (FREE)' : 'ROLL ($rollCost)';
   }
   
   void closeShop() {
@@ -307,17 +462,21 @@ class ShopPanel extends RectangleComponent with HasGameRef<CircleRougeGame>, Tap
 }
 
 class ShopSlot extends RectangleComponent with TapCallbacks, HasGameRef<CircleRougeGame> {
-  late TextComponent nameText;
+  late TextBoxComponent nameText;
   late TextComponent costText;
   late TextComponent descriptionText;
   late RectangleComponent buyButton;
   late TextComponent buyButtonText;
+  late SpriteComponent itemIcon;
+  late RectangleComponent border;
+  late RectangleComponent outerGlow;
+  late RectangleComponent buyButtonGlow;
   
   ShopItem? currentItem;
   
   ShopSlot({required Vector2 position}) : super(
     size: Vector2(ShopPanel.slotWidth, ShopPanel.slotHeight),
-    paint: Paint()..color = const Color(0xFF424242),
+    paint: Paint()..color = Colors.transparent,
     position: position,
   );
   
@@ -325,84 +484,332 @@ class ShopSlot extends RectangleComponent with TapCallbacks, HasGameRef<CircleRo
   Future<void> onLoad() async {
     super.onLoad();
     
-    // Item name
-    nameText = TextComponent(
+    // Background with enhanced gradient
+    final background = RectangleComponent(
+      size: Vector2(size.x, size.y),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF3A3A3A),
+            Color(0xFF2A2A2A),
+            Color(0xFF1A1A1A),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, size.x, size.y)),
+      position: Vector2.zero(),
+    );
+    add(background);
+    
+    // Border with enhanced glow
+    border = RectangleComponent(
+      size: Vector2(size.x, size.y),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.5),
+      position: Vector2.zero(),
+    );
+    add(border);
+    
+    // Outer glow effect for slots
+    outerGlow = RectangleComponent(
+      size: Vector2(size.x + 4, size.y + 4),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.1)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+      position: Vector2(-2, -2),
+    );
+    add(outerGlow);
+    
+    // Item icon background with enhanced styling
+    final iconBackground = RectangleComponent(
+      size: Vector2(50, 50),
+      paint: Paint()
+        ..color = Colors.black.withOpacity(0.3),
+      position: Vector2((size.x - 50) / 2, 15),
+    );
+    add(iconBackground);
+    
+    // Item icon border
+    final iconBorder = RectangleComponent(
+      size: Vector2(50, 50),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF4A9EFF).withOpacity(0.3),
+      position: Vector2((size.x - 50) / 2, 15),
+    );
+    add(iconBorder);
+    
+    // Item icon - start with empty sprite
+    itemIcon = SpriteComponent(
+      size: Vector2(40, 40),
+      position: Vector2((size.x - 40) / 2, 20),
+    );
+    add(itemIcon);
+    
+    // Item name with enhanced styling and line wrapping
+    nameText = TextBoxComponent(
       text: '',
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Colors.white,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
+          color: Color(0xFF4A9EFF),
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+          shadows: [
+            Shadow(
+              color: Color(0xFF4A9EFF),
+              blurRadius: 6,
+            ),
+          ],
         ),
       ),
+      align: Anchor.center,
+      boxConfig: TextBoxConfig(
+        maxWidth: size.x - 10, // Leave some padding on sides
+        timePerChar: 0.0, // Instant display, no typewriter effect
+      ),
       anchor: Anchor.topCenter,
-      position: Vector2(size.x / 2, 15),
+      position: Vector2(size.x / 2, 75),
     );
     add(nameText);
     
-    // Item description
+    // Item description with better styling
     descriptionText = TextComponent(
       text: '',
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Colors.grey,
-          fontSize: 11,
+          color: Color(0xFFE0E0E0),
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+          shadows: [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 2,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(size.x / 2, 45),
+      position: Vector2(size.x / 2, 120),
     );
     add(descriptionText);
     
-    // Cost
+    // Cost with enhanced styling
     costText = TextComponent(
       text: '',
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Color(0xFFFFEB3B),
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+          shadows: [
+            Shadow(
+              color: Color(0xFFFFEB3B),
+              blurRadius: 8,
+            ),
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.topCenter,
-      position: Vector2(size.x / 2, 90),
+      position: Vector2(size.x / 2, 155),
     );
     add(costText);
     
-    // Buy button
+    // Buy button with enhanced gradient styling
     buyButton = RectangleComponent(
-      size: Vector2(100, 25),
-      paint: Paint()..color = const Color(0xFF4CAF50),
-      position: Vector2((size.x - 100) / 2, size.y - 40),
+      size: Vector2(130, 40),
+      paint: Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF4CAF50),
+            Color(0xFF388E3C),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, 130, 40)),
+      position: Vector2((size.x - 130) / 2, size.y - 55),
     );
     add(buyButton);
     
+    // Buy button glow effect
+    buyButtonGlow = RectangleComponent(
+      size: Vector2(130, 40),
+      paint: Paint()
+        ..color = Colors.transparent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF4CAF50).withOpacity(0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      position: Vector2((size.x - 130) / 2, size.y - 55),
+    );
+    add(buyButtonGlow);
+    
     buyButtonText = TextComponent(
-      text: 'Buy',
+      text: 'PURCHASE',
       textRenderer: TextPaint(
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+          fontSize: 14,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.2,
+          shadows: [
+            Shadow(
+              color: Colors.black,
+              blurRadius: 4,
+            ),
+          ],
         ),
       ),
       anchor: Anchor.center,
-      position: Vector2(50, 12.5),
+      position: Vector2(65, 20),
     );
     buyButton.add(buyButtonText);
   }
   
+  // Get category colors based on item type
+  Map<String, Color> _getCategoryColors(String itemId) {
+    switch (itemId) {
+      case 'health_potion':
+      case 'max_health_up':
+        // Green for health items
+        return {
+          'primary': const Color(0xFF4CAF50),
+          'secondary': const Color(0xFF66BB6A),
+          'glow': const Color(0xFF4CAF50),
+        };
+      case 'attack_speed_up':
+        // Red for attack items
+        return {
+          'primary': const Color(0xFFF44336),
+          'secondary': const Color(0xFFE57373),
+          'glow': const Color(0xFFF44336),
+        };
+      case 'speed_boost':
+        // Blue for speed items
+        return {
+          'primary': const Color(0xFF2196F3),
+          'secondary': const Color(0xFF64B5F6),
+          'glow': const Color(0xFF2196F3),
+        };
+      case 'dash_mastery':
+        // Hero color for ability items
+        final heroColor = gameRef.hero.heroData.color;
+        return {
+          'primary': heroColor,
+          'secondary': heroColor.withOpacity(0.8),
+          'glow': heroColor,
+        };
+      default:
+        // Default blue theme
+        return {
+          'primary': const Color(0xFF4A9EFF),
+          'secondary': const Color(0xFF64B5F6),
+          'glow': const Color(0xFF4A9EFF),
+        };
+    }
+  }
+
   void setItem(ShopItem item) {
     currentItem = item;
-    nameText.text = item.name;
-    descriptionText.text = item.description;
-    costText.text = '${item.cost} coins';
+    final colors = _getCategoryColors(item.id);
     
-    // Update buy button color based on affordability
+    nameText.text = item.name.toUpperCase();
+    descriptionText.text = item.description;
+    costText.text = '💰 ${item.cost} COINS';
+    
+    // Update name text color to match category
+    nameText.textRenderer = TextPaint(
+      style: TextStyle(
+        color: colors['primary']!,
+        fontSize: 16,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1,
+        shadows: [
+          Shadow(
+            color: colors['glow']!,
+            blurRadius: 6,
+          ),
+        ],
+      ),
+    );
+    
+    // Update border and glow colors to match category
+    border.paint.color = colors['primary']!.withOpacity(0.6);
+    outerGlow.paint.color = colors['glow']!.withOpacity(0.15);
+    
+    // Update buy button styling based on affordability and category
     if (gameRef.hero.coins >= item.cost) {
-      buyButton.paint.color = const Color(0xFF4CAF50); // Green
+      // Update buy button gradient with category colors
+      buyButton.paint.shader = LinearGradient(
+        colors: [
+          colors['primary']!,
+          colors['secondary']!,
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, 130, 40));
+      
+      buyButtonGlow.paint.color = colors['glow']!.withOpacity(0.5);
+      buyButtonText.text = 'PURCHASE';
     } else {
-      buyButton.paint.color = const Color(0xFF757575); // Grey
+      // Grey for unaffordable items
+      buyButton.paint.shader = const LinearGradient(
+        colors: [
+          Color(0xFF757575),
+          Color(0xFF616161),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, 130, 40));
+      
+      buyButtonGlow.paint.color = const Color(0xFF757575).withOpacity(0.3);
+      buyButtonText.text = 'TOO EXPENSIVE';
+      border.paint.color = const Color(0xFFF44336).withOpacity(0.4);
+    }
+    
+    // Load appropriate image based on item ID
+    _loadItemIcon(item.id);
+  }
+  
+  Future<void> _loadItemIcon(String itemId) async {
+    String imagePath;
+    
+    // Map item IDs to their corresponding transparent images
+    switch (itemId) {
+      case 'health_potion':
+        imagePath = 'health_potion_transparent.png';
+        break;
+      case 'speed_boost':
+        imagePath = 'speed_boost_transparent.png';
+        break;
+      case 'attack_speed_up':
+        imagePath = 'attack_speed_transparent.png';
+        break;
+      case 'max_health_up':
+        imagePath = 'max_health_up_transparent.png';
+        break;
+      case 'dash_mastery':
+        imagePath = 'ability_mastery_transparent.png';
+        break;
+      default:
+        imagePath = 'ability_mastery_transparent.png'; // fallback
+        break;
+    }
+    
+    try {
+      final sprite = await Sprite.load(imagePath);
+      itemIcon.sprite = sprite;
+    } catch (e) {
+      print('Failed to load item icon: $imagePath');
+      // Keep the sprite empty if loading fails
     }
   }
   
@@ -430,12 +837,50 @@ class ShopSlot extends RectangleComponent with TapCallbacks, HasGameRef<CircleRo
       // Play purchase sound effect
       SoundManager().playPurchaseSound();
       
-      // Clear this slot
+      // Clear this slot with enhanced sold styling
       currentItem = null;
-      nameText.text = 'SOLD';
-      descriptionText.text = '';
+      nameText.text = '✅ SOLD';
+      nameText.textRenderer = TextPaint(
+        style: const TextStyle(
+          color: Color(0xFF4CAF50),
+          fontSize: 16,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+          shadows: [
+            Shadow(
+              color: Color(0xFF4CAF50),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+      );
+      descriptionText.text = 'Item purchased successfully!';
+      descriptionText.textRenderer = TextPaint(
+        style: const TextStyle(
+          color: Color(0xFF4CAF50),
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+        ),
+      );
       costText.text = '';
-      buyButton.paint.color = const Color(0xFF757575);
+      
+      // Update buy button to sold out styling
+      buyButton.paint.shader = const LinearGradient(
+        colors: [
+          Color(0xFF757575),
+          Color(0xFF616161),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, 130, 40));
+      
+      buyButtonGlow.paint.color = const Color(0xFF757575).withOpacity(0.3);
+      buyButtonText.text = 'SOLD OUT';
+      
+      // Update border and glow to success green
+      border.paint.color = const Color(0xFF4CAF50).withOpacity(0.8);
+      outerGlow.paint.color = const Color(0xFF4CAF50).withOpacity(0.2);
+      
+      itemIcon.sprite = null; // Clear the sprite for sold items
       
       // Update parent shop immediately
       if (parent is ShopPanel) {
