@@ -75,7 +75,7 @@ class HeroSelectionOverlay extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: hero.color,
+              color: hero.shape == 'circle' || hero.shape == 'square' ? hero.color : Colors.transparent,
               shape: hero.shape == 'circle' ? BoxShape.circle : BoxShape.rectangle,
               borderRadius: hero.shape != 'circle' ? BorderRadius.circular(8) : null,
             ),

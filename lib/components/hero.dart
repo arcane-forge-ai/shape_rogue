@@ -13,6 +13,7 @@ import 'enemies/enemy_shooter.dart';
 import 'enemies/piercing_projectile.dart';
 import 'enemies/projectile.dart';
 import 'shapes/custom_shapes.dart';
+import 'sound_manager.dart';
 
 class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardHandler {
   // Hero configuration
@@ -344,7 +345,9 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
     final movement = direction * dashSpeed * dt;
     
     // Check for enemy collisions during dash
-    for (final enemy in gameRef.currentEnemies) {
+    // Create a copy to avoid ConcurrentModificationError
+    final enemiesCopy = List<Component>.from(gameRef.currentEnemies);
+    for (final enemy in enemiesCopy) {
       if (enemy is PositionComponent && enemy is CircleComponent) {
         final distanceToEnemy = position.distanceTo(enemy.position);
         final enemyRadius = (enemy as CircleComponent).radius;
@@ -397,6 +400,9 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
   }
   
   void _executeDashDamage() {
+    // Play sound effect for circle hero
+    SoundManager().playHeroAbilitySound(heroData.shape);
+    
     // Get current input direction for rolling surge
     Vector2 dashDirection = Vector2.zero();
     
@@ -434,6 +440,9 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
   }
   
   void _executePiercingShot() {
+    // Play sound effect for triangle hero
+    SoundManager().playHeroAbilitySound(heroData.shape);
+    
     // Find direction to nearest enemy or shoot forward
     Vector2 direction = Vector2(0, -1); // Default forward
     
@@ -468,6 +477,9 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
   }
   
   void _executeAreaStun() {
+    // Play sound effect for square hero
+    SoundManager().playHeroAbilitySound(heroData.shape);
+    
     // Stun all enemies within range
     final scaledRange = heroData.ability.range * CircleRougeGame.scaleFactor;
     final stunDuration = heroData.ability.duration ?? 3.0;
@@ -492,6 +504,9 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
   }
   
   void _executeRadialBurst() {
+    // Play sound effect for pentagon hero
+    SoundManager().playHeroAbilitySound(heroData.shape);
+    
     // Fire projectiles in all directions
     final projectileCount = heroData.ability.projectileCount ?? 5;
     final angleStep = (2 * pi) / projectileCount;
@@ -514,6 +529,9 @@ class Hero extends PositionComponent with HasGameRef<CircleRougeGame>, KeyboardH
   }
   
   void _executeAreaField() {
+    // Play sound effect for hexagon hero
+    SoundManager().playHeroAbilitySound(heroData.shape);
+    
     // Create visual hex field effect
     final scaledRange = heroData.ability.range * CircleRougeGame.scaleFactor;
     final duration = heroData.ability.duration ?? 4.0;

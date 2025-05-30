@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../game/circle_rouge_game.dart';
 import '../config/item_config.dart';
+import 'sound_manager.dart';
 
 class ShopItem {
   final String id;
@@ -425,6 +426,9 @@ class ShopSlot extends RectangleComponent with TapCallbacks, HasGameRef<CircleRo
     if (gameRef.hero.coins >= currentItem!.cost) {
       gameRef.hero.spendCoins(currentItem!.cost);
       currentItem!.onPurchase();
+      
+      // Play purchase sound effect
+      SoundManager().playPurchaseSound();
       
       // Clear this slot
       currentItem = null;
