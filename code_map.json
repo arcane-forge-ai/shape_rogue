@@ -1,0 +1,313 @@
+{
+  "project": "Shape Rogue",
+  "description": "Fast-paced geometric arena brawler built with Flutter and Flame engine",
+  "main_entry": "lib/main.dart",
+  "file_tree": {
+    "lib/": {
+      "main.dart": "App entry point, GameWidget setup",
+      "game/": {
+        "circle_rouge_game.dart": "Main game class, game loop, state management"
+      },
+      "components/": {
+        "hero.dart": "Player character component with abilities",
+        "hud.dart": "UI overlay for health, energy, wave info",
+        "shop_panel.dart": "Between-wave upgrade shop",
+        "stats_overlay.dart": "Coin counter and status display",
+        "sound_manager.dart": "Audio management singleton",
+        "enemies/": {
+          "enemy_chaser.dart": "Red aggressive enemies",
+          "enemy_shooter.dart": "Purple ranged enemies",
+          "projectile.dart": "Base projectile class",
+          "shape_projectile.dart": "Hero projectile implementation",
+          "piercing_projectile.dart": "Piercing projectile for Triangle",
+          "triangle_projectile.dart": "Massive Triangle ability projectile"
+        },
+        "abilities/": {
+          "hex_field.dart": "Hexagon's tactical area denial ability"
+        },
+        "shapes/": {
+          "custom_shapes.dart": "Geometric shape rendering utilities"
+        }
+      },
+      "overlays/": {
+        "start_menu_overlay.dart": "Main menu UI",
+        "hero_selection_overlay.dart": "Character selection screen",
+        "game_over_overlay.dart": "Victory/defeat screens",
+        "pause_menu_overlay.dart": "In-game pause menu"
+      },
+      "config/": {
+        "hero_config.dart": "Hero data and ability definitions",
+        "wave_config.dart": "Wave progression and enemy settings",
+        "item_config.dart": "Shop item definitions and effects"
+      }
+    },
+    "assets/": {
+      "config/": {
+        "heroes.json": "Hero stats and ability configurations",
+        "waves.json": "Wave settings and enemy spawn patterns",
+        "items.json": "Shop item definitions"
+      },
+      "images/": {
+        "background1.png": "Arena background"
+      },
+      "audio/": {
+        "Geometric Pulse.mp3": "Battle background music",
+        "clear.mp3": "Wave completion sound",
+        "fail.mp3": "Game over sound",
+        "victory.mp3": "Game completion sound",
+        "purchase.mp3": "Shop purchase sound",
+        "dash_trim.mp3": "Circle ability sound",
+        "spike_shot_trim.mp3": "Triangle ability sound",
+        "shield_bash_trim.mp3": "Square ability sound",
+        "star_flare_trim.mp3": "Pentagon ability sound",
+        "hex_field.mp3": "Hexagon ability sound"
+      }
+    },
+    "design_docs/": {
+      "game_introduction.md": "Complete game overview and design philosophy",
+      "circle_rouge_pitch.md": "Original game pitch and concept",
+      "heroes.md": "Hero design specifications",
+      "hud_and_shop_node_wireframe.md": "UI design specifications",
+      "prototype_1_hero_movement_and_shape_ability.md": "Movement prototype notes",
+      "prototype_2_enemt_behaviors.md": "Enemy behavior prototype notes",
+      "play_test_plan_one_full_run.md": "Testing methodology",
+      "sound_generation.md": "Audio design specifications",
+      "Todo.md": "Development tasks"
+    },
+    "patch_notes/": {
+      "v1.3.0.md": "Multi-hero system implementation",
+      "v1.5.0.md": "Enhanced abilities and balance changes"
+    }
+  },
+  "key_apis": {
+    "game_core": {
+      "CircleRougeGame": {
+        "file": "lib/game/circle_rouge_game.dart",
+        "extends": "FlameGame",
+        "mixins": ["HasKeyboardHandlerComponents", "HasCollisionDetection"],
+        "key_methods": [
+          "onLoad(): Future<void> - Initialize game and load configs",
+          "startGame(): void - Show hero selection",
+          "startGameWithHero(String heroId): void - Begin gameplay with selected hero",
+          "restartGame(): void - Reset and restart current session",
+          "showStartMenu(): void - Return to main menu",
+          "pauseGame(): void - Pause gameplay",
+          "resumeGame(): void - Resume gameplay",
+          "startWave(int wave): void - Initialize wave with enemy spawning",
+          "onWaveComplete(): void - Handle wave completion and shop",
+          "onGameOver(): void - Handle player defeat",
+          "spawnEnemy(): void - Create enemy based on wave configuration",
+          "onEnemyDestroyed(Component enemy): void - Handle enemy death and coin rewards",
+          "addProjectile(Component projectile): void - Track projectile",
+          "onProjectileDestroyed(Component projectile): void - Clean up projectile",
+          "updateScreenDimensions(double width, double height): void - Responsive sizing"
+        ],
+        "key_properties": [
+          "GameState gameState - Current game state enum",
+          "Hero hero - Player character instance", 
+          "int currentWave - Current wave number (1-5)",
+          "List<Component> currentEnemies - Active enemy list",
+          "List<Component> currentProjectiles - Active projectile list",
+          "double waveTimer - Current wave elapsed time",
+          "String selectedHeroId - Selected character type",
+          "static double arenaWidth/arenaHeight - Game area dimensions",
+          "static double scaleFactor - Responsive scaling multiplier"
+        ]
+      }
+    },
+    "hero_system": {
+      "Hero": {
+        "file": "lib/components/hero.dart",
+        "extends": "PositionComponent",
+        "mixins": ["HasGameRef<CircleRougeGame>", "KeyboardHandler"],
+        "key_methods": [
+          "onLoad(): Future<void> - Initialize hero with configuration",
+          "update(double dt): void - Handle movement, shooting, abilities",
+          "render(Canvas canvas): void - Draw hero shape with effects",
+          "onKeyEvent(KeyEvent event): bool - Process keyboard input",
+          "useAbility(): void - Trigger hero-specific ability",
+          "takeDamage(double damage): void - Handle incoming damage",
+          "heal(double amount): void - Restore health",
+          "addCoins(int amount): void - Increment coin count",
+          "shoot(): void - Fire projectile at nearest enemy",
+          "findNearestEnemy(): Component? - Target acquisition",
+          "activateInvincibility(): void - Post-wave protection"
+        ],
+        "key_properties": [
+          "HeroData heroData - Hero configuration from JSON",
+          "double health/maxHealth - Current and maximum HP",
+          "double energy/maxEnergy - Ability resource",
+          "int coins - Currency for shop purchases",
+          "double attackSpeedMultiplier - Attack rate modifier",
+          "double speedMultiplier - Movement speed modifier", 
+          "double abilityCooldownMultiplier - Ability cooldown modifier",
+          "bool isInvincible - Temporary damage immunity",
+          "double lastAbilityTime - Cooldown tracking"
+        ]
+      },
+      "HeroConfig": {
+        "file": "lib/config/hero_config.dart",
+        "pattern": "Singleton",
+        "key_methods": [
+          "static HeroConfig get instance - Singleton accessor",
+          "loadConfig(): Future<void> - Load heroes.json configuration",
+          "getHeroById(String id): HeroData? - Retrieve hero by identifier",
+          "get defaultHero: HeroData - Fallback hero (Circle)"
+        ],
+        "key_classes": [
+          "HeroData - Hero statistics and configuration",
+          "HeroAbility - Ability definitions with damage/cooldown/effects"
+        ]
+      }
+    },
+    "enemy_system": {
+      "EnemyChaser": {
+        "file": "lib/components/enemies/enemy_chaser.dart",
+        "extends": "PositionComponent",
+        "behavior": "Direct pursuit AI with collision damage",
+        "key_methods": [
+          "update(double dt): void - Chase player with pathfinding",
+          "takeDamage(double damage): void - Handle damage and death"
+        ]
+      },
+      "EnemyShooter": {
+        "file": "lib/components/enemies/enemy_shooter.dart", 
+        "extends": "PositionComponent",
+        "behavior": "Ranged combat AI with distance maintenance",
+        "key_methods": [
+          "update(double dt): void - Position and shoot at player",
+          "shootAtPlayer(): void - Fire projectile with timing",
+          "takeDamage(double damage): void - Handle damage and death"
+        ]
+      },
+      "Projectile": {
+        "file": "lib/components/enemies/projectile.dart",
+        "extends": "PositionComponent", 
+        "key_methods": [
+          "update(double dt): void - Movement and collision detection",
+          "onCollision(Set<Vector2> intersectionPoints, PositionComponent other): bool"
+        ]
+      }
+    },
+    "ui_system": {
+      "HudComponent": {
+        "file": "lib/components/hud.dart",
+        "extends": "PositionComponent",
+        "key_methods": [
+          "updateHealth(double health): void - Sync health display",
+          "updateEnergy(double energy): void - Sync energy display", 
+          "updateWave(int wave): void - Update wave indicator",
+          "updateTimer(double timeLeft): void - Update wave countdown",
+          "updateAbilityCooldown(double cooldown): void - Show ability status"
+        ]
+      },
+      "ShopPanel": {
+        "file": "lib/components/shop_panel.dart",
+        "extends": "PositionComponent",
+        "key_methods": [
+          "show(): void - Display shop interface",
+          "hide(): void - Close shop interface", 
+          "purchaseItem(String itemId): void - Handle item purchase",
+          "updateCoins(int coins): void - Refresh coin display"
+        ]
+      },
+      "StartMenuOverlay": {
+        "file": "lib/overlays/start_menu_overlay.dart",
+        "extends": "StatelessWidget",
+        "purpose": "Main menu with game title and start button"
+      },
+      "HeroSelectionOverlay": {
+        "file": "lib/overlays/hero_selection_overlay.dart", 
+        "extends": "StatelessWidget",
+        "purpose": "Character selection with hero cards and stats"
+      }
+    },
+    "audio_system": {
+      "SoundManager": {
+        "file": "lib/components/sound_manager.dart",
+        "pattern": "Singleton",
+        "key_methods": [
+          "preloadSounds(): Future<void> - Load all audio assets",
+          "playHeroAbilitySound(String heroShape): Future<void> - Ability SFX",
+          "playBattleBGM(): Future<void> - Start background music",
+          "stopBGM(): Future<void> - Stop background music",
+          "playClearSound(): Future<void> - Wave completion SFX",
+          "playFailSound(): Future<void> - Game over SFX", 
+          "playVictorySound(): Future<void> - Victory SFX",
+          "playPurchaseSound(): Future<void> - Shop purchase SFX"
+        ],
+        "key_properties": [
+          "double volume - Sound effects volume (0.0-1.0)",
+          "double musicVolume - Background music volume (0.0-1.0)"
+        ]
+      }
+    },
+    "configuration_system": {
+      "WaveConfig": {
+        "file": "lib/config/wave_config.dart",
+        "pattern": "Singleton",
+        "purpose": "Wave progression, enemy spawn rates, difficulty scaling",
+        "key_methods": [
+          "loadConfig(): Future<void> - Load waves.json",
+          "getEnemyReward(String enemyType): WaveReward? - Get coin rewards"
+        ]
+      },
+      "ItemConfig": {
+        "file": "lib/config/item_config.dart",
+        "pattern": "Singleton", 
+        "purpose": "Shop item definitions, prices, effects",
+        "key_methods": [
+          "loadConfig(): Future<void> - Load items.json",
+          "getAllItems(): List<ItemData> - Get shop inventory"
+        ]
+      }
+    }
+  },
+  "game_flow": {
+    "state_machine": {
+      "GameState.startMenu": "Main menu display",
+      "GameState.heroSelection": "Character picker",
+      "GameState.playing": "Active gameplay with waves",
+      "GameState.shopping": "Between-wave upgrade shop", 
+      "GameState.gameOver": "Defeat screen with restart options",
+      "GameState.victory": "Success screen after 5 waves",
+      "GameState.paused": "Pause menu overlay"
+    },
+    "gameplay_loop": [
+      "1. Hero Selection - Choose from 5 geometric heroes",
+      "2. Wave Start - 30-second survival challenge", 
+      "3. Enemy Spawning - Increasing density over time",
+      "4. Combat - Auto-shooting + manual abilities",
+      "5. Wave Clear - All enemies defeated or timer expires",
+      "6. Shop Phase - Spend coins on upgrades",
+      "7. Next Wave - Repeat until wave 5 completion or death"
+    ]
+  },
+  "core_features": {
+    "hero_abilities": {
+      "Circle": "Rolling Surge - Dash attack through enemies",
+      "Triangle": "Spike Shot - Screen-wide piercing projectile", 
+      "Square": "Shield Bash - Global enemy stun",
+      "Pentagon": "Star Flare - 5-projectile radial burst",
+      "Hexagon": "Hex Field - Area damage + slow field"
+    },
+    "enemy_types": {
+      "Chaser": "Red - Direct pursuit with contact damage",
+      "Shooter": "Purple - Ranged attacks with distance keeping"
+    },
+    "upgrade_system": {
+      "Instant": ["Health Potion", "Energy Restoration"],
+      "Permanent": ["Max Health Up", "Attack Speed Up", "Ability Mastery"],
+      "Temporary": ["Speed Boost"]
+    }
+  },
+  "technical_architecture": {
+    "engine": "Flutter + Flame 1.18.0",
+    "patterns": ["Component-Entity System", "Singleton Managers", "Observer Pattern"],
+    "rendering": "Custom Canvas-based geometric shapes",
+    "input": "Keyboard handling with WASD movement + Space/E abilities",
+    "audio": "Flame Audio with preloaded assets",
+    "configuration": "JSON-driven data with runtime loading",
+    "scaling": "Responsive design with arena-based scaling factor"
+  }
+} 

@@ -1,0 +1,148 @@
+{
+    "clusters": [
+      {
+        "id": 1,
+        "name": "UI/Layout Issues",
+        "count": 1,
+        "neg_pct": 1.0,
+        "example": "info boxes overlapping the game area"
+      },
+      {
+        "id": 2,
+        "name": "Level Design Flaws",
+        "count": 1,
+        "neg_pct": 1.0,
+        "example": "dead corners where orange enemies can't reach"
+      },
+      {
+        "id": 3,
+        "name": "Missing Upgrades",
+        "count": 1,
+        "neg_pct": 1.0,
+        "example": "I didn't see any range upgrades"
+      },
+      {
+        "id": 4,
+        "name": "Desire More Content",
+        "count": 2,
+        "neg_pct": 0.5,
+        "example": "I want to have more characters and more abilities and more items."
+      },
+      {
+        "id": 5,
+        "name": "Game Modes & Meta",
+        "count": 1,
+        "neg_pct": 1.0,
+        "example": "game mode (endless vs staged vs 1hp)"
+      },
+      {
+        "id": 6,
+        "name": "Difficulty Ramp",
+        "count": 1,
+        "neg_pct": 1.0,
+        "example": "a slower ramp in difficulty would be better"
+      },
+      {
+        "id": 7,
+        "name": "Theme Feedback",
+        "count": 1,
+        "neg_pct": 0.0,
+        "example": "I have a neutral feeling about the shape themes"
+      }
+    ],
+    "opportunities": [
+      "Improve UI to prevent overlapping info boxes and enable scrolling on selection screen",
+      "Fix level design so enemies can reach all areas and avoid dead corners",
+      "Implement range upgrades in the shop to enhance ability depth",
+      "Expand roster with more characters, abilities, items, enemies, weapons, and upgrades",
+      "Introduce varied game modes (endless, staged, 1HP) and persistent meta-progression",
+      "Adjust difficulty curve to ramp more gradually in early waves",
+      "Explore alternative art themes beyond geometric shapes, like a bacterial motif"
+    ],
+    "mutation_briefs": [
+      {
+        "title": "Fix UI Overlap and Scrolling",
+        "rationale": "Addresses usability issues where info boxes block gameplay and selection screen lacks scrolling.",
+        "changes": [
+          "Reposition or toggle info boxes to avoid overlapping the game area",
+          "Enable horizontal scrolling on the desktop selection screen",
+          "Ensure UI elements scale or collapse to fit various resolutions"
+        ],
+        "impact": 4,
+        "effort": 2,
+        "novelty": "QoL"
+      },
+      {
+        "title": "Eliminate Dead Map Corners",
+        "rationale": "Removes unreachable zones to ensure consistent enemy engagement and fair challenge.",
+        "changes": [
+          "Adjust arena boundaries to fill or remove dead corners",
+          "Update enemy pathfinding to navigate edge cases and cover full map",
+          "Reposition spawn points to prevent unreachable areas"
+        ],
+        "impact": 3,
+        "effort": 2,
+        "novelty": "mechanic"
+      },
+      {
+        "title": "Add Range Upgrade Option",
+        "rationale": "Fills missing upgrade type to deepen build variety and strategic choices.",
+        "changes": [
+          "Introduce a shop option that increases projectile or ability range",
+          "Balance upgrade cost and effect relative to other upgrades",
+          "Add UI indicators showing current and upgraded range values"
+        ],
+        "impact": 3,
+        "effort": 2,
+        "novelty": "mechanic"
+      },
+      {
+        "title": "Expand Characters and Items",
+        "rationale": "Addresses player desire for more content to boost engagement and replayability.",
+        "changes": [
+          "Design and implement additional hero shapes with unique abilities",
+          "Add new enemy archetypes, weapon types, and item pickups",
+          "Introduce upgrade variants to diversify build paths"
+        ],
+        "impact": 4,
+        "effort": 5,
+        "novelty": "mechanic"
+      },
+      {
+        "title": "Introduce More Game Modes",
+        "rationale": "Enhances replayability by offering new modes.",
+        "changes": [
+          "Add endless mode and 1HP challenge variant alongside staged waves",
+          "Create UI for selecting game modes"
+        ],
+        "impact": 5,
+        "effort": 4,
+        "novelty": "mechanic"
+      },
+      {
+        "title": "Adjust Early Difficulty Curve",
+        "rationale": "Smooths difficulty ramp to improve player onboarding and retention.",
+        "changes": [
+          "Reduce enemy count or health in initial waves",
+          "Stagger introduction of aggressive enemy types over more time",
+          "Allow difficulty settings or tutorial assistance for first runs"
+        ],
+        "impact": 3,
+        "effort": 2,
+        "novelty": "difficulty"
+      },
+      {
+        "title": "Apply Bacterial Theme",
+        "rationale": "Offers a fresh art direction to move beyond geometric POC feel and enhance thematic appeal.",
+        "changes": [
+          "Replace geometric hero silhouettes with cell-like art (e.g., antibodies)",
+          "Redesign enemies as bacteria or viruses with matching visuals",
+          "Update UI color palette and sprites to reflect biological motif"
+        ],
+        "impact": 3,
+        "effort": 3,
+        "novelty": "theme"
+      }
+    ]
+  }
+  
